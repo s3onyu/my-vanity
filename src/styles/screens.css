@@ -878,3 +878,122 @@
 .tut-mode {
   margin-bottom: 14px;
 }
+
+/* ---------- 쉬운 근거 목록 ---------- */
+
+.score-headline {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--bone);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.score-headline__line {
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.reason-group__title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--slate);
+  margin-bottom: 8px;
+}
+
+.reason-plain-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.reason-plain {
+  display: flex;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-left-width: 4px;
+}
+
+.reason-plain--minus {
+  border-left-color: var(--rose);
+}
+
+.reason-plain--plus {
+  border-left-color: var(--mint);
+}
+
+.reason-plain__emoji {
+  font-size: 20px;
+  line-height: 1.2;
+}
+
+.reason-plain__title {
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.reason-plain__delta {
+  flex-shrink: 0;
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+  margin-left: 8px;
+}
+
+.reason-plain__delta.is-minus {
+  background: var(--rose-2);
+  color: var(--rose-ink);
+}
+
+.reason-plain__delta.is-plus {
+  background: var(--mint-2);
+  color: var(--mint-ink);
+}
+
+.reason-plain__why {
+  margin-top: 5px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--ink-2);
+}
+
+.reason-plain__tip {
+  margin-top: 6px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--slate);
+  padding: 7px 10px;
+  border-radius: 8px;
+  background: var(--bone);
+}
+
+.glossary {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--bone);
+}
+
+.glossary__item dt {
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+.glossary__item dd {
+  font-size: 12.5px;
+  color: var(--slate);
+  line-height: 1.5;
+  margin-top: 2px;
+}
