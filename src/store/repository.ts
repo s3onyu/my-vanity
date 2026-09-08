@@ -8,9 +8,11 @@ export interface UserData {
   matches: ProductMatch[];
   /** 사용자가 직접 등록한 제품 (사진 등록 등) */
   customProducts: Product[];
+  /** 제품 id → 내가 붙인 사진(data URL) */
+  productPhotos: Record<string, string>;
 }
 
-export const EMPTY_USER_DATA: UserData = { profile: null, routines: [], logs: [], matches: [], customProducts: [] };
+export const EMPTY_USER_DATA: UserData = { profile: null, routines: [], logs: [], matches: [], customProducts: [], productPhotos: {} };
 
 /**
  * 저장소 추상화.
@@ -36,6 +38,9 @@ export interface Repository {
 
   upsertCustomProduct(product: Product): Promise<void>;
   deleteCustomProduct(id: string): Promise<void>;
+
+  upsertProductPhoto(productId: string, imageUrl: string): Promise<void>;
+  deleteProductPhoto(productId: string): Promise<void>;
 
   /** 커뮤니티 게시글 — 다른 사용자에게도 공개되는 공유 데이터 */
   listPosts(): Promise<BoardPost[]>;

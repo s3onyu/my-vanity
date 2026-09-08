@@ -198,3 +198,20 @@ alter table public.user_products enable row level security;
 drop policy if exists "user_products own" on public.user_products;
 create policy "user_products own" on public.user_products for all
   using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- ---------------------------------------------------------------------------
+--  제품에 내가 붙인 사진 (마스터 제품·직접 등록 제품 공통) — 본인만 읽기/쓰기
+-- ---------------------------------------------------------------------------
+
+create table if not exists public.user_product_photos (
+  user_id    uuid not null references auth.users(id) on delete cascade,
+  product_id text not null,
+  image_url  text not null,
+  created_at timestamptz not null default now(),
+  primary key (user_id, product_id)
+);
+
+alter table public.user_product_photos enable row level security;
+drop policy if exists "user_product_photos own" on public.user_product_photos;
+create policy "user_product_photos own" on public.user_product_photos for all
+  using (auth.uid() = user_id) with check (auth.uid() = user_id);

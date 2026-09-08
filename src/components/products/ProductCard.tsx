@@ -4,6 +4,7 @@ import { getIngredient } from '@/data';
 import { Badge } from '@/components/ui/Chip';
 import { Icon } from '@/components/ui/Icon';
 import { useAppStore, selectMatchOf } from '@/store/useAppStore';
+import { ProductThumb } from './ProductThumb';
 
 interface IngredientTagsProps {
   ids: string[];
@@ -68,7 +69,7 @@ export function ProductCard({ product, showMatch = true, action, footer }: Produ
         </div>
       </div>
       <div className="row">
-        {product.imageUrl && <img src={product.imageUrl} alt="" className="product-thumb" />}
+        <ProductThumb product={product} size={44} editable />
         <div className="product-card__name flex-1">{product.name}</div>
         {product.custom && (
           <button

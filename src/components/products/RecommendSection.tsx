@@ -8,6 +8,7 @@ import { Icon } from '@/components/ui/Icon';
 import { useAppStore, useRoutine } from '@/store/useAppStore';
 import { useCatalog } from '@/store/catalog';
 import { IngredientTags } from './ProductCard';
+import { ProductThumb } from './ProductThumb';
 
 function RecommendCard({ rec }: { rec: Recommendation }) {
   const addToRoutine = useAppStore((s) => s.addToRoutine);
@@ -27,7 +28,10 @@ function RecommendCard({ rec }: { rec: Recommendation }) {
           <Badge>{p.category}</Badge>
         </div>
       </div>
-      <div className="product-card__name">{p.name}</div>
+      <div className="row">
+        <ProductThumb product={p} size={40} />
+        <div className="product-card__name flex-1">{p.name}</div>
+      </div>
       <div className="row row--wrap" style={{ gap: 4 }}>
         {rec.matchedConcerns.map((c) => (
           <Badge key={c} color={CONCERN_MAP[c].colorTag}>

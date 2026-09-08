@@ -4,6 +4,7 @@ import { Icon } from '@/components/ui/Icon';
 import { useAppStore, useRoutine } from '@/store/useAppStore';
 import { findProduct } from '@/store/catalog';
 import { IngredientTags } from './ProductCard';
+import { ProductThumb } from './ProductThumb';
 
 export function RoutineList() {
   const activeRoutine = useAppStore((s) => s.activeRoutine);
@@ -29,9 +30,12 @@ export function RoutineList() {
         const day = usageDay(item.startedAt);
         return (
           <li key={item.id} className="routine-item">
-            <span className="routine-item__step" aria-hidden="true">
-              {idx + 1}
-            </span>
+            <div className="routine-item__visual">
+              <ProductThumb product={product} size={48} editable />
+              <span className="routine-item__step" aria-hidden="true">
+                {idx + 1}
+              </span>
+            </div>
             <div className="routine-item__body">
               <div className="product-card__brand">{product.brand}</div>
               <div className="product-card__name ellipsis">{product.name}</div>

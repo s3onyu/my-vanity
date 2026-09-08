@@ -83,6 +83,16 @@ export function createLocalRepository(seedPosts: BoardPost[] = []): Repository {
       writeUser({ customProducts: readUser().customProducts.filter((p) => p.id !== id) });
     },
 
+    async upsertProductPhoto(productId: string, imageUrl: string) {
+      writeUser({ productPhotos: { ...readUser().productPhotos, [productId]: imageUrl } });
+    },
+
+    async deleteProductPhoto(productId: string) {
+      const photos = { ...readUser().productPhotos };
+      delete photos[productId];
+      writeUser({ productPhotos: photos });
+    },
+
     async listPosts() {
       return readPosts().sort((a, b) => b.createdAt.localeCompare(a.createdAt));
     },

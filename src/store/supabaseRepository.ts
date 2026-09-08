@@ -151,24 +151,31 @@ export function createSupabaseRepository(): Repository {
 
     async load(): Promise<UserData> {
       const id = await uid();
-      const [pr, rt, lg, mt, cp] = await Promise.all([
+      const [pr, rt, lg, mt, cp, ph] = await Promise.all([
         sb().from('profiles').select('*').eq('user_id', id).maybeSingle(),
         sb().from('user_routines').select('*').eq('user_id', id).order('sort_order'),
         sb().from('skin_logs').select('*').eq('user_id', id).order('date', { ascending: false }).order('period'),
         sb().from('user_product_matches').select('*').eq('user_id', id),
         sb().from('user_products').select('*').eq('user_id', id).order('created_at'),
+        sb().from('user_product_photos').select('product_id,image_url').eq('user_id', id),
       ]);
       check('profiles', pr.error);
       check('user_routines', rt.error);
       check('skin_logs', lg.error);
       check('user_product_matches', mt.error);
       check('user_products', cp.error);
+      check('user_product_photos', ph.error);
+      const productPhotos: Record<string, string> = {};
+      ((ph.data ?? []) as { product_id: string; image_url: string }[]).forEach((row) => {
+        productPhotos[row.product_id] = row.image_url;
+      });
       return {
         profile: pr.data ? toProfile(pr.data as ProfileRow) : null,
         routines: ((rt.data ?? []) as RoutineRow[]).map(toRoutine),
         logs: ((lg.data ?? []) as LogRow[]).map(toLog),
         matches: ((mt.data ?? []) as MatchRow[]).map(toMatch),
         customProducts: ((cp.data ?? []) as CustomProductRow[]).map(toCustomProduct),
+        productPhotos,
       };
     },
 
@@ -271,6 +278,20 @@ export function createSupabaseRepository(): Repository {
       const id = await uid();
       const { error } = await sb().from('user_products').delete().eq('id', productId).eq('user_id', id);
       check('user_products delete', error);
+    },
+
+    async upsertProductPhoto(productId, imageUrl) {
+      const id = await uid();
+      const { error } = await sb()
+        .from('user_product_photos')
+        .upsert({ user_id: id, product_id: productId, image_url: imageUrl }, { onConflict: 'user_id,product_id' });
+      check('user_product_photos upsert', error);
+    },
+
+    async deleteProductPhoto(productId) {
+      const id = await uid();
+      const { error } = await sb().from('user_product_photos').delete().eq('product_id', productId).eq('user_id', id);
+      check('user_product_photos delete', error);
     },
 
     async listPosts() {

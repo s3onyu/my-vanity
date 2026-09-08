@@ -9,22 +9,70 @@ import { Badge, Chip } from '@/components/ui/Chip';
 import { Icon } from '@/components/ui/Icon';
 import { useAppStore } from '@/store/useAppStore';
 import { ProductCard } from './ProductCard';
+import { ProductThumb } from './ProductThumb';
 import { CustomProductForm } from './CustomProductForm';
 
 type Stage = 'pick' | 'recognizing' | 'results' | 'register';
+
+/** 사진으로 찾은 제품을 담을 때, 아직 사진이 없으면 찍은 사진을 그 제품 사진으로 붙인다 */
+function useAttachPhoto(photo: string | null) {
+  const photos = useAppStore((s) => s.productPhotos);
+  const setProductPhoto = useAppStore((s) => s.setProductPhoto);
+  return async (productId: string) => {
+    if (!photo || photos[productId]) return false;
+    await setProductPhoto(productId, photo);
+    return true;
+  };
+}
+
+function MatchedProductCard({ match, photo }: { match: PhotoMatch; photo: string | null }) {
+  const addToRoutine = useAppStore((s) => s.addToRoutine);
+  const activeRoutine = useAppStore((s) => s.activeRoutine);
+  const showToast = useAppStore((s) => s.showToast);
+  const attachPhoto = useAttachPhoto(photo);
+  const p = match.product;
+  return (
+    <ProductCard
+      product={p}
+      action={
+        <button
+          type="button"
+          className="btn btn--sm"
+          onClick={async () => {
+            const r = await addToRoutine(p.id);
+            const attached = await attachPhoto(p.id);
+            showToast(
+              (r === 'added' ? `${activeRoutine === 'AM' ? '아침' : '저녁'} 루틴에 담았어요` : '이미 이 루틴에 담겨 있어요') +
+                (attached ? ' · 사진도 붙였어요' : ''),
+            );
+          }}
+        >
+          <Icon name="plus" size={14} /> 담기
+        </button>
+      }
+      footer={
+        <p className="tiny muted">
+          일치: {match.hits.slice(0, 4).join(', ')} · 점수 {Math.round(match.score)}
+        </p>
+      }
+    />
+  );
+}
 
 interface Props {
   /** true 면 사진 없이 바로 직접 등록 폼으로 */
   registerOnly?: boolean;
 }
 
-function BrandProductRow({ match }: { match: PhotoMatch }) {
+function BrandProductRow({ match, photo }: { match: PhotoMatch; photo: string | null }) {
   const addToRoutine = useAppStore((s) => s.addToRoutine);
   const activeRoutine = useAppStore((s) => s.activeRoutine);
   const showToast = useAppStore((s) => s.showToast);
+  const attachPhoto = useAttachPhoto(photo);
   const p = match.product;
   return (
     <div className="product-mini">
+      <ProductThumb product={p} size={36} />
       <div className="flex-1">
         <div className="product-mini__brand">
           {p.category}
@@ -37,7 +85,8 @@ function BrandProductRow({ match }: { match: PhotoMatch }) {
         className="btn btn--sm"
         onClick={async () => {
           const r = await addToRoutine(p.id);
-          showToast(r === 'added' ? `${activeRoutine === 'AM' ? '아침' : '저녁'} 루틴에 담았어요` : '이미 담겨 있어요');
+          const attached = await attachPhoto(p.id);
+          showToast((r === 'added' ? `${activeRoutine === 'AM' ? '아침' : '저녁'} 루틴에 담았어요` : '이미 담겨 있어요') + (attached ? ' · 사진도 붙였어요' : ''));
         }}
       >
         담기
@@ -192,15 +241,7 @@ export function PhotoSearchOverlay({ registerOnly = false }: Props) {
               </div>
               <div className="stack stack--sm">
                 {analysis.nameMatches.map((m) => (
-                  <ProductCard
-                    key={m.product.id}
-                    product={m.product}
-                    footer={
-                      <p className="tiny muted">
-                        일치: {m.hits.slice(0, 4).join(', ')} · 점수 {Math.round(m.score)}
-                      </p>
-                    }
-                  />
+                  <MatchedProductCard key={m.product.id} match={m} photo={thumb} />
                 ))}
               </div>
             </>
@@ -218,7 +259,7 @@ export function PhotoSearchOverlay({ registerOnly = false }: Props) {
               </p>
               <div className="stack stack--sm">
                 {brandList.map((m) => (
-                  <BrandProductRow key={m.product.id} match={m} />
+                  <BrandProductRow key={m.product.id} match={m} photo={thumb} />
                 ))}
               </div>
               {analysis.brandProducts.length > 6 && (

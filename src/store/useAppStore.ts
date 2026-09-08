@@ -22,7 +22,7 @@ export type Overlay =
   | { type: 'board' }
   | { type: 'post'; id: string }
   | { type: 'post-form' }
-  | { type: 'tutorial'; id?: string }
+  | { type: 'tutorial'; id?: string; mode?: 'illustration' | 'video'; categoryId?: string }
   | { type: 'profile-edit' }
   | { type: 'care'; concernId: ConcernId }
   | { type: 'photo-search'; registerOnly?: boolean };
@@ -49,6 +49,7 @@ interface AppState {
   logs: SkinLog[];
   matches: ProductMatch[];
   customProducts: Product[];
+  productPhotos: Record<string, string>;
   posts: BoardPost[];
 
   // UI
@@ -72,6 +73,8 @@ interface AppState {
   removeMatch: (id: string) => Promise<void>;
   addCustomProduct: (input: Omit<Product, 'id' | 'verified' | 'custom'>) => Promise<Product>;
   removeCustomProduct: (id: string) => Promise<void>;
+  setProductPhoto: (productId: string, imageUrl: string) => Promise<void>;
+  removeProductPhoto: (productId: string) => Promise<void>;
   createPost: (input: Omit<BoardPost, 'id' | 'likes' | 'createdAt'>) => Promise<void>;
   likePost: (id: string) => Promise<void>;
 
@@ -126,6 +129,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   logs: [],
   matches: [],
   customProducts: [],
+  productPhotos: {},
   posts: [],
 
   page: 'home',
@@ -162,6 +166,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       logs,
       matches: data.matches,
       customProducts: data.customProducts.map((p) => ({ ...p, custom: true })),
+      productPhotos: data.productPhotos ?? {},
       posts,
     });
     if (error) get().showToast('서버에 연결하지 못해 이 기기에만 저장해요');
@@ -302,6 +307,18 @@ export const useAppStore = create<AppState>((set, get) => ({
       ]).then(() => undefined),
       get().showToast,
     );
+  },
+
+  async setProductPhoto(productId, imageUrl) {
+    set({ productPhotos: { ...get().productPhotos, [productId]: imageUrl } });
+    await persist(repo.upsertProductPhoto(productId, imageUrl), get().showToast);
+  },
+
+  async removeProductPhoto(productId) {
+    const photos = { ...get().productPhotos };
+    delete photos[productId];
+    set({ productPhotos: photos });
+    await persist(repo.deleteProductPhoto(productId), get().showToast);
   },
 
   async createPost(input) {
