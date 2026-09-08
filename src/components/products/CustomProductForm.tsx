@@ -33,13 +33,15 @@ export function guessCategory(name: string): ProductCategory {
 interface Props {
   initialBrand?: string;
   initialName?: string;
+  initialCategory?: ProductCategory | null;
+  initialIngredientIds?: string[];
   imageUrl?: string | null;
   onSaved: (product: Product, addedToRoutine: boolean) => void;
   onCancel?: () => void;
 }
 
 /** 사진/수동으로 내 제품을 직접 등록 — 성분을 골라야 궁합 점수에 반영된다 */
-export function CustomProductForm({ initialBrand = '', initialName = '', imageUrl = null, onSaved, onCancel }: Props) {
+export function CustomProductForm({ initialBrand = '', initialName = '', initialCategory = null, initialIngredientIds = [], imageUrl = null, onSaved, onCancel }: Props) {
   const addCustomProduct = useAppStore((s) => s.addCustomProduct);
   const addToRoutine = useAppStore((s) => s.addToRoutine);
   const activeRoutine = useAppStore((s) => s.activeRoutine);
@@ -47,8 +49,8 @@ export function CustomProductForm({ initialBrand = '', initialName = '', imageUr
 
   const [brand, setBrand] = useState(initialBrand);
   const [name, setName] = useState(initialName);
-  const [category, setCategory] = useState<ProductCategory>(() => guessCategory(initialName));
-  const [ingredientIds, setIngredientIds] = useState<string[]>([]);
+  const [category, setCategory] = useState<ProductCategory>(() => initialCategory ?? guessCategory(initialName));
+  const [ingredientIds, setIngredientIds] = useState<string[]>(initialIngredientIds.slice(0, 8));
   const [ingQuery, setIngQuery] = useState('');
   const [concerns, setConcerns] = useState<ConcernId[]>([]);
   const [skinTypes, setSkinTypes] = useState<SkinType[]>(profileSkin ? [profileSkin] : []);

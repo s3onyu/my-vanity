@@ -5,6 +5,8 @@ import { INGREDIENTS_PART2 } from './ingredients/part2';
 import { PRODUCTS_PART1 } from './products/part1';
 import { PRODUCTS_PART2 } from './products/part2';
 import { PRODUCTS_PART3 } from './products/part3';
+import { PRODUCTS_PART4 } from './products/part4';
+import { BRAND_ALIASES } from './brands';
 import { INTERACTIONS } from './interactions';
 
 export { INTERACTIONS };
@@ -14,7 +16,7 @@ export { CONCERNS, CONCERN_MAP, CATEGORY_LABEL, CATEGORY_COLOR, SKIN_TYPES, SKIN
 export const INGREDIENTS: Ingredient[] = [...INGREDIENTS_PART1, ...INGREDIENTS_PART2];
 
 /** 제품 마스터 데이터 (데모/미검증) */
-export const PRODUCTS: Product[] = [...PRODUCTS_PART1, ...PRODUCTS_PART2, ...PRODUCTS_PART3];
+export const PRODUCTS: Product[] = [...PRODUCTS_PART1, ...PRODUCTS_PART2, ...PRODUCTS_PART3, ...PRODUCTS_PART4];
 
 export const CATALOG = buildCatalog(INGREDIENTS, PRODUCTS, INTERACTIONS);
 
@@ -47,7 +49,7 @@ const indexEntry = (p: Product): ProductIndexEntry => ({
   product: p,
   brand: norm(p.brand),
   name: norm(p.name),
-  aliases: p.aliases.map(norm),
+  aliases: [...p.aliases, ...(BRAND_ALIASES[p.brand] ?? [])].map(norm),
   ingredientNames: p.keyIngredients.flatMap((id) => {
     const ing = CATALOG.ingredients.get(id);
     return ing ? [norm(ing.nameKo), norm(ing.nameInci)] : [];
