@@ -174,9 +174,14 @@ export function HomePage() {
             <div className="eyebrow">Tutorial</div>
             <h2 className="h2">눈화장 튜토리얼</h2>
           </div>
-          <button type="button" className="link-btn" onClick={() => pushOverlay({ type: 'tutorial' })}>
-            전체 보기
-          </button>
+          <div className="row" style={{ gap: 10 }}>
+            <button type="button" className="link-btn" onClick={() => pushOverlay({ type: 'tutorial', mode: 'video' })}>
+              🎬 영상으로 배우기
+            </button>
+            <button type="button" className="link-btn" onClick={() => pushOverlay({ type: 'tutorial' })}>
+              전체 보기
+            </button>
+          </div>
         </div>
         <div className="h-scroll">
           {TUTORIALS.filter((t) => t.category === 'eye').map((t) => (

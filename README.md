@@ -55,6 +55,11 @@ VITE_SUPABASE_ANON_KEY=eyJ...
 
 6. `npm run dev` 를 다시 실행하면 홈 상단에 "☁️ 서버(Supabase)에 저장" 이 표시됩니다. 서버 연결에 실패하면 자동으로 localStorage 모드로 내려앉고 안내가 표시됩니다.
 
+## 제품 사진과 영상 튜토리얼
+
+- **제품 사진.** 시드 제품에는 카테고리별 일러스트(병·스포이드·자·튜브 등)를 브랜드 색으로 보여줍니다. 사진으로 제품을 찾아 담으면 그 사진이 자동으로 제품 사진이 되고, 카드의 썸네일을 눌러 직접 찍거나 앨범에서 골라 붙일 수도 있습니다. 사진은 내 저장소(`user_product_photos`)에만 저장됩니다.
+- **영상으로 배우기.** 튜토리얼의 "영상으로 배우기" 탭에서 눈화장·블러셔·코쉐딩·베이스·립·눈썹 등 종류별 YouTube 영상을 앱 안에서 재생합니다. 기본은 존재·임베드 가능 여부를 확인한 큐레이션 목록이고, `.env.local` 에 `VITE_YOUTUBE_API_KEY` 를 넣으면 YouTube Data API v3 로 종류별 최신 영상을 실시간 검색합니다(결과는 24시간 캐시). 키는 Google Cloud 콘솔에서 HTTP 리퍼러로 제한하세요.
+
 테이블: `profiles`, `user_routines`, `skin_logs`, `user_product_matches`, `user_products`(직접 등록 제품), `board_posts`(공개), 마스터 `products`, `ingredients`, `ingredient_interactions`.
 앱은 마스터 데이터를 번들에서 읽고(오프라인·속도), 사용자 데이터는 Supabase 에서 읽고 씁니다.
 

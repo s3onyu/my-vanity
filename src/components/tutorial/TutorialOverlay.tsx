@@ -1,14 +1,18 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { EyeLayer, FaceLayer, Tutorial, TutorialCategory } from '@/types';
 import { TUTORIALS } from '@/data/tutorials';
+import { videoCategoryForTutorial } from '@/data/videos';
 import { Overlay } from '@/components/layout/Overlay';
 import { Badge } from '@/components/ui/Chip';
 import { Icon } from '@/components/ui/Icon';
 import { useAppStore } from '@/store/useAppStore';
 import { EyeIllustration } from './EyeIllustration';
 import { FaceIllustration } from './FaceIllustration';
+import { VideoSection } from './VideoSection';
 
 const CATEGORY_LABEL: Record<TutorialCategory, string> = { eye: '눈화장', blush: '블러셔', nose: '코쉐딩' };
+
+type Mode = 'illustration' | 'video';
 
 function layersUpTo(t: Tutorial, step: number) {
   return t.steps.slice(0, step + 1).flatMap((s) => s.layers);
@@ -32,11 +36,12 @@ export function TutorialPreview({ tutorial }: { tutorial: Tutorial }) {
   );
 }
 
-function TutorialDetail({ tutorial, onBack }: { tutorial: Tutorial; onBack: () => void }) {
+function TutorialDetail({ tutorial, onBack, onVideos }: { tutorial: Tutorial; onBack: () => void; onVideos: (categoryId: string) => void }) {
   const [step, setStep] = useState(-1); // -1 = 맨눈/맨얼굴
   useEffect(() => setStep(-1), [tutorial.id]);
   const total = tutorial.steps.length;
   const progress = ((step + 1) / total) * 100;
+  const videoCategory = videoCategoryForTutorial(tutorial.id);
 
   return (
     <div>
@@ -99,13 +104,31 @@ function TutorialDetail({ tutorial, onBack }: { tutorial: Tutorial; onBack: () =
           );
         })}
       </ol>
+
+      {videoCategory && (
+        <button type="button" className="btn btn--soft btn--block mt-3" onClick={() => onVideos(videoCategory.id)}>
+          🎬 {videoCategory.title} 실제 영상으로 배우기
+        </button>
+      )}
     </div>
   );
 }
 
-/** 메이크업 튜토리얼 오버레이 — 목록(카테고리 탭 + 카드 그리드) / 상세(단계별 누적 일러스트) */
-export function TutorialOverlay({ initialId }: { initialId?: string }) {
+interface Props {
+  initialId?: string;
+  initialMode?: Mode;
+  initialCategoryId?: string;
+}
+
+/**
+ * 메이크업 튜토리얼 오버레이.
+ * - 일러스트로 배우기: 카테고리 탭 + 카드 그리드 / 단계별 누적 일러스트
+ * - 영상으로 배우기: 메이크업 종류별 YouTube 영상 (앱 안 재생)
+ */
+export function TutorialOverlay({ initialId, initialMode = 'illustration', initialCategoryId }: Props) {
   const popOverlay = useAppStore((s) => s.popOverlay);
+  const [mode, setMode] = useState<Mode>(initialMode);
+  const [videoCategoryId, setVideoCategoryId] = useState<string | undefined>(initialCategoryId);
   const [category, setCategory] = useState<TutorialCategory>(() => TUTORIALS.find((t) => t.id === initialId)?.category ?? 'eye');
   const [selectedId, setSelectedId] = useState<string | null>(initialId ?? null);
   const selected = TUTORIALS.find((t) => t.id === selectedId) ?? null;
@@ -113,8 +136,30 @@ export function TutorialOverlay({ initialId }: { initialId?: string }) {
 
   return (
     <Overlay title="메이크업 튜토리얼" onClose={popOverlay}>
-      {selected ? (
-        <TutorialDetail tutorial={selected} onBack={() => setSelectedId(null)} />
+      <div className="segment tut-mode" role="tablist" aria-label="배우기 방식">
+        {(
+          [
+            ['illustration', '🎨 일러스트로 배우기'],
+            ['video', '🎬 영상으로 배우기'],
+          ] as const
+        ).map(([id, label]) => (
+          <button key={id} type="button" role="tab" aria-selected={mode === id} className={`segment__btn${mode === id ? ' is-active' : ''}`} onClick={() => setMode(id)}>
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {mode === 'video' ? (
+        <VideoSection key={videoCategoryId ?? 'default'} initialCategoryId={videoCategoryId} />
+      ) : selected ? (
+        <TutorialDetail
+          tutorial={selected}
+          onBack={() => setSelectedId(null)}
+          onVideos={(id) => {
+            setVideoCategoryId(id);
+            setMode('video');
+          }}
+        />
       ) : (
         <>
           <div className="tabs" role="tablist">
@@ -141,11 +186,13 @@ export function TutorialOverlay({ initialId }: { initialId?: string }) {
                   ))}
                 </div>
                 <div className="tut-card__title">{t.title}</div>
-                <div className="tiny muted">{t.steps.length}단계 · {t.subtitle}</div>
+                <div className="tiny muted">
+                  {t.steps.length}단계 · {t.subtitle}
+                </div>
               </button>
             ))}
           </div>
-          <p className="fine-print">모든 이미지는 실제 인물이 아닌 원본 일러스트예요. 단계를 누르면 해당 단계까지의 메이크업이 누적돼 그려져요.</p>
+          <p className="fine-print">모든 이미지는 실제 인물이 아닌 원본 일러스트예요. 단계를 누르면 해당 단계까지의 메이크업이 누적돼 그려져요. 실제 영상은 "영상으로 배우기"에서 볼 수 있어요.</p>
         </>
       )}
     </Overlay>

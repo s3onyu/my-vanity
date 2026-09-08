@@ -53,7 +53,14 @@ function Overlays() {
     case 'post-form':
       return <PostFormOverlay />;
     case 'tutorial':
-      return <TutorialOverlay key={top.id ?? 'list'} initialId={top.id} />;
+      return (
+        <TutorialOverlay
+          key={`${top.mode ?? 'illustration'}-${top.id ?? top.categoryId ?? 'list'}`}
+          initialId={top.id}
+          initialMode={top.mode}
+          initialCategoryId={top.categoryId}
+        />
+      );
     case 'care':
       return <CareOverlay concernId={top.concernId} />;
     case 'photo-search':
