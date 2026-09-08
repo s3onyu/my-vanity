@@ -1,15 +1,17 @@
 import { useEffect } from 'react';
 import { useAppStore } from '@/store/useAppStore';
 import { BottomNav } from '@/components/layout/BottomNav';
-import { Overlay } from '@/components/layout/Overlay';
 import { Onboarding } from '@/components/onboarding/Onboarding';
+import { IngredientSheet } from '@/components/ingredients/IngredientSheet';
+import { CareOverlay } from '@/components/care/CareOverlay';
+import { BoardOverlay, PostDetailOverlay } from '@/components/board/BoardOverlay';
+import { PostFormOverlay } from '@/components/board/PostForm';
+import { TutorialOverlay } from '@/components/tutorial/TutorialOverlay';
 import { HomePage } from '@/pages/Home';
 import { ProductsPage } from '@/pages/Products';
 import { IngredientsPage } from '@/pages/Ingredients';
 import { CarePage } from '@/pages/Care';
 import { DiaryPage } from '@/pages/Diary';
-import { IngredientSheet } from '@/components/ingredients/IngredientSheet';
-import { CareOverlay } from '@/components/care/CareOverlay';
 
 function CurrentPage() {
   const page = useAppStore((s) => s.page);
@@ -27,6 +29,7 @@ function CurrentPage() {
   }
 }
 
+/** 오버레이 스택 — 맨 위 하나만 렌더링 (게시판 → 상세처럼 겹쳐 열린 경우 뒤로가기로 하나씩 닫힌다) */
 function Overlays() {
   const overlays = useAppStore((s) => s.overlays);
   const popOverlay = useAppStore((s) => s.popOverlay);
@@ -43,17 +46,13 @@ function Overlays() {
         </div>
       );
     case 'board':
-      return (
-        <Overlay title="다른 사람들의 화장대" onClose={popOverlay}>
-          <div className="empty">5차시에서 완성돼요 — 커뮤니티 게시판</div>
-        </Overlay>
-      );
+      return <BoardOverlay />;
+    case 'post':
+      return <PostDetailOverlay id={top.id} />;
+    case 'post-form':
+      return <PostFormOverlay />;
     case 'tutorial':
-      return (
-        <Overlay title="메이크업 튜토리얼" onClose={popOverlay}>
-          <div className="empty">5차시에서 완성돼요 — 메이크업 튜토리얼</div>
-        </Overlay>
-      );
+      return <TutorialOverlay key={top.id ?? 'list'} initialId={top.id} />;
     case 'care':
       return <CareOverlay concernId={top.concernId} />;
     default:

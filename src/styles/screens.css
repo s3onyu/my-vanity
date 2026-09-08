@@ -1,0 +1,688 @@
+/* ==========================================================================
+   내 화장대 — 결과 화면 스타일 (궁합 카드, 추천, 홈, 게시판, 튜토리얼, 기록)
+   ========================================================================== */
+
+/* ---------- 궁합 점수 카드 ---------- */
+
+.score-card__top {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.score-card__ring {
+  position: relative;
+  width: 96px;
+  height: 96px;
+  flex-shrink: 0;
+}
+
+.score-card__num {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.score-card__num .serif {
+  font-size: 32px;
+  font-weight: 500;
+}
+
+.score-card__summary {
+  margin-top: 4px;
+  font-weight: 600;
+  font-size: 14.5px;
+  line-height: 1.4;
+}
+
+.score-card__summary--mint { color: var(--mint-ink); }
+.score-card__summary--butter { color: var(--butter-ink); }
+.score-card__summary--rose { color: var(--rose-ink); }
+.score-card__summary--plum { color: var(--plum-ink); }
+
+.tone-mint { color: var(--mint-ink); }
+.tone-butter { color: var(--butter-ink); }
+.tone-rose { color: var(--rose-ink); }
+.tone-plum { color: var(--plum-ink); }
+
+.score-card__label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--slate);
+  margin-bottom: 10px;
+}
+
+.reason-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.reason {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.reason__rule {
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  background: var(--bone);
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--slate);
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.reason__label {
+  font-weight: 600;
+  font-size: 13.5px;
+}
+
+.reason__delta {
+  font-family: var(--font-serif);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.reason__delta.is-plus { color: var(--mint-ink); }
+.reason__delta.is-minus { color: var(--rose-ink); }
+
+.reason__detail {
+  font-size: 12.5px;
+  color: var(--slate);
+  line-height: 1.55;
+  margin-top: 2px;
+}
+
+.reason__base {
+  margin-top: 10px;
+}
+
+.score-card__disclaimer {
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--line);
+}
+
+.ix-card {
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--bone);
+  border-left: 4px solid var(--line);
+}
+
+.ix-card--good { border-left-color: var(--mint); }
+.ix-card--neutral { border-left-color: var(--sky); }
+.ix-card--caution { border-left-color: var(--butter); background: var(--butter-2); }
+.ix-card--high_caution { border-left-color: var(--rose); background: var(--rose-2); }
+
+.ix-card__pair {
+  font-weight: 700;
+  font-size: 13.5px;
+}
+
+.ix-card__pair .link-btn {
+  font-size: 13.5px;
+}
+
+.ix-card__reason {
+  font-size: 12.5px;
+  line-height: 1.55;
+  margin-top: 6px;
+  color: var(--ink-2);
+}
+
+.ix-card__rec {
+  font-size: 12.5px;
+  line-height: 1.5;
+  margin-top: 4px;
+  color: var(--slate);
+}
+
+/* ---------- 추천 ---------- */
+
+.rec-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px;
+  border-radius: var(--radius);
+  background: var(--card);
+  border: 1px solid var(--line);
+}
+
+.rec-card--warn {
+  border-color: #eedcb6;
+}
+
+.rec-card__reason {
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--ink-2);
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--bone);
+}
+
+.rec-card__ings {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.rec-card__ing {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-align: left;
+  padding: 6px 4px;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.gap-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--sky-2);
+  border: 1px dashed var(--sky);
+}
+
+.gap-card__icon {
+  font-size: 22px;
+}
+
+/* ---------- 홈 ---------- */
+
+.home-routine {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  background: var(--card);
+  border: 1px solid var(--line);
+}
+
+.home-routine__ring {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  flex-shrink: 0;
+}
+
+.home-routine__num {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+}
+
+.ing-day {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 18px;
+  border-radius: var(--radius-lg);
+}
+
+.ing-day__name {
+  font-size: 24px;
+  font-weight: 500;
+}
+
+.ing-day__inci {
+  font-size: 12px;
+  color: var(--slate);
+  font-style: italic;
+}
+
+.ing-day__desc {
+  margin: 10px 0 12px;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--ink-2);
+}
+
+.post-preview {
+  width: 210px;
+  text-align: left;
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  background: var(--card);
+  border: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 120px;
+}
+
+.post-preview__title {
+  font-weight: 600;
+  font-size: 13.5px;
+  line-height: 1.35;
+}
+
+.post-preview__meta {
+  margin-top: auto;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.tut-preview {
+  width: 150px;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tut-preview__title {
+  font-weight: 600;
+  font-size: 13px;
+  margin-top: 4px;
+}
+
+/* ---------- 게시판 ---------- */
+
+.post-card {
+  border-radius: var(--radius);
+  background: var(--card);
+  border: 1px solid var(--line);
+  overflow: hidden;
+}
+
+.post-card__main {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  text-align: left;
+  padding: 14px 14px 8px;
+}
+
+.post-card__title {
+  font-weight: 700;
+  font-size: 15px;
+  line-height: 1.35;
+}
+
+.post-card__product {
+  font-size: 12px;
+  color: var(--slate);
+}
+
+.post-card__body {
+  font-size: 13px;
+  color: var(--slate);
+  line-height: 1.5;
+}
+
+.post-card__img {
+  width: 100%;
+  max-height: 180px;
+  object-fit: cover;
+  border-radius: 10px;
+  margin-top: 4px;
+}
+
+.post-card__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 14px 10px;
+}
+
+.like-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--rose-ink);
+  background: var(--card);
+}
+
+.like-btn--lg {
+  padding: 9px 16px;
+  font-size: 13.5px;
+}
+
+.post-detail__img {
+  width: 100%;
+  border-radius: 12px;
+  max-height: 360px;
+  object-fit: cover;
+}
+
+.post-detail__body {
+  margin-top: 16px;
+  font-size: 15px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+}
+
+.suggest {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--card);
+}
+
+.suggest__item {
+  text-align: left;
+  padding: 9px 12px;
+  font-size: 13px;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.verdict-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.verdict-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 6px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.verdict-btn.is-active {
+  border-color: var(--ink);
+}
+
+.file-drop {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px dashed var(--line);
+  background: var(--bone);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--slate);
+  cursor: pointer;
+}
+
+/* ---------- 튜토리얼 ---------- */
+
+.tut-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.tut-card {
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  border-radius: var(--radius);
+  background: var(--card);
+  border: 1px solid var(--line);
+}
+
+.tut-card__title {
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.tut-thumb {
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fbf3ec;
+  border: 1px solid var(--line-soft);
+}
+
+.tut-stage {
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: #fbf3ec;
+  position: relative;
+}
+
+.tut-stage__caption {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgba(26, 31, 28, 0.75);
+  color: var(--paper);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.progress {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--line-soft);
+  overflow: hidden;
+}
+
+.progress__bar {
+  height: 100%;
+  background: var(--ink);
+  border-radius: 3px;
+  transition: width 0.25s;
+}
+
+.tut-steps {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tut-step__btn {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  width: 100%;
+  text-align: left;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--card);
+}
+
+.tut-step.is-current .tut-step__btn {
+  border-color: var(--ink);
+  background: var(--bone);
+}
+
+.tut-step.is-done .tut-step__btn {
+  opacity: 0.7;
+}
+
+.tut-step__num {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--ink);
+  color: var(--paper);
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.tut-step.is-done .tut-step__num {
+  background: var(--mint);
+  color: var(--mint-ink);
+}
+
+.tut-step__title {
+  display: block;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.tut-step__tip {
+  display: block;
+  margin-top: 6px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--ink-2);
+}
+
+/* ---------- 기록 ---------- */
+
+.slider {
+  margin-top: 14px;
+}
+
+.slider__label {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.slider__value {
+  font-size: 18px;
+}
+
+.slider input[type='range'] {
+  width: 100%;
+  accent-color: var(--ink);
+  margin-top: 4px;
+}
+
+.slider__ends {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.log-row {
+  list-style: none;
+  padding: 14px;
+  border-radius: var(--radius);
+  background: var(--card);
+  border: 1px solid var(--line);
+}
+
+.log-row__metrics {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.log-metric__dots {
+  display: flex;
+  gap: 3px;
+  margin-top: 3px;
+}
+
+.dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--line-soft);
+}
+
+.dot.is-on { background: var(--ink); }
+.dot--comfort.is-on { background: var(--mint-ink); }
+.dot--dryness.is-on { background: var(--sky-ink); }
+.dot--oiliness.is-on { background: var(--butter-ink); }
+.dot--irritation.is-on { background: var(--rose-ink); }
+
+.compare-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.compare {
+  text-align: center;
+  padding: 10px 4px;
+  border-radius: 10px;
+  background: var(--bone);
+}
+
+.compare__value {
+  font-size: 22px;
+  margin: 2px 0;
+}
+
+.bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 110px;
+}
+
+.bars__col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  height: 100%;
+  gap: 4px;
+}
+
+.bars__bar {
+  width: 100%;
+  border-radius: 4px 4px 2px 2px;
+  background: var(--mint);
+  min-height: 2px;
+}
+
+.bars__day {
+  font-size: 9.5px;
+  color: var(--muted);
+}
+
+.suspect {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--bone);
+}
+
+.suspect__stat {
+  font-family: var(--font-serif);
+  font-size: 16px;
+  white-space: nowrap;
+}

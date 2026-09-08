@@ -1,12 +1,23 @@
+import { useMemo } from 'react';
+import { CATALOG } from '@/data';
+import { analyzeRoutine } from '@/engine/compatibility';
 import { useAppStore, useRoutine } from '@/store/useAppStore';
 import { ProductSearch } from '@/components/products/ProductSearch';
 import { RoutineList } from '@/components/products/RoutineList';
 import { MatchRecords } from '@/components/products/MatchRecords';
+import { ScoreCard } from '@/components/products/ScoreCard';
+import { RecommendSection } from '@/components/products/RecommendSection';
 
 export function ProductsPage() {
   const activeRoutine = useAppStore((s) => s.activeRoutine);
   const setActiveRoutine = useAppStore((s) => s.setActiveRoutine);
+  const skinType = useAppStore((s) => s.profile?.skinType ?? null);
   const items = useRoutine(activeRoutine);
+
+  const result = useMemo(
+    () => analyzeRoutine({ productIds: items.map((r) => r.productId), routineType: activeRoutine, skinType }, CATALOG),
+    [items, activeRoutine, skinType],
+  );
 
   return (
     <div className="page">
@@ -55,10 +66,7 @@ export function ProductsPage() {
             <h2 className="h2">성분 궁합 분석</h2>
           </div>
         </div>
-        <div className="empty">
-          <strong>4~5차시에서 완성돼요</strong>
-          궁합 점수 카드와 계산 근거가 여기에 표시됩니다.
-        </div>
+        <ScoreCard result={result} routineType={activeRoutine} />
       </section>
 
       <section className="section">
@@ -80,10 +88,7 @@ export function ProductsPage() {
             </h2>
           </div>
         </div>
-        <div className="empty">
-          <strong>4~5차시에서 완성돼요</strong>
-          고민 기반 추천 카드가 여기에 표시됩니다.
-        </div>
+        <RecommendSection />
       </section>
     </div>
   );

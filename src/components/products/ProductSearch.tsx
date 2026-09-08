@@ -39,6 +39,7 @@ export function ProductSearch({ onActiveChange }: Props) {
           className={`input${validation.message ? ' is-invalid' : ''}`}
           type="search"
           inputMode="search"
+          id="product-search"
           placeholder="브랜드·제품명·별칭·성분으로 검색 (예: 헤라, 독도토너, 레티놀)"
           value={raw}
           onChange={(e) => update(e.target.value)}
