@@ -1,0 +1,413 @@
+/* ==========================================================================
+   내 화장대 — 도메인 컴포넌트 스타일
+   ========================================================================== */
+
+/* ---------- 제품 카드 ---------- */
+
+.product-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--card);
+}
+
+.product-card__brand {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--muted);
+  letter-spacing: 0.02em;
+}
+
+.product-card__name {
+  font-weight: 600;
+  font-size: 14.5px;
+  line-height: 1.35;
+}
+
+.product-card__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.ing-tag {
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  background: var(--bone);
+  color: var(--slate);
+  border: 0;
+}
+
+.ing-tag--rose { background: var(--rose-2); color: var(--rose-ink); }
+.ing-tag--mint { background: var(--mint-2); color: var(--mint-ink); }
+.ing-tag--sky { background: var(--sky-2); color: var(--sky-ink); }
+.ing-tag--butter { background: var(--butter-2); color: var(--butter-ink); }
+.ing-tag--lilac { background: var(--lilac-2); color: var(--lilac-ink); }
+.ing-tag--gold { background: var(--gold-2); color: var(--gold-ink); }
+.ing-tag--plum { background: var(--plum-2); color: var(--plum-ink); }
+
+.product-card__actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.product-card__actions .btn {
+  margin-left: auto;
+}
+
+.match-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  border-radius: 9px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--slate);
+}
+
+.match-btn.is-good {
+  background: var(--mint-2);
+  border-color: var(--mint);
+  color: var(--mint-ink);
+}
+
+.match-btn.is-avoided {
+  background: var(--danger-soft);
+  border-color: #f0c9c4;
+  color: var(--danger);
+}
+
+.search-results {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.search-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+/* ---------- 루틴 ---------- */
+
+.routine-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.routine-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 12px 12px 14px;
+  border-radius: var(--radius);
+  background: var(--card);
+  border: 1px solid var(--line);
+}
+
+.routine-item__step {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-serif);
+  font-size: 12px;
+  background: var(--bone);
+  color: var(--slate);
+  flex-shrink: 0;
+}
+
+.routine-item__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.routine-item__meta {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 3px;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+.routine-item__ctrl {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.routine-item__ctrl .icon-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+}
+
+/* ---------- 성분 카드 ---------- */
+
+.ing-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.ing-card {
+  position: relative;
+  text-align: left;
+  padding: 14px 14px 12px;
+  border-radius: var(--radius);
+  background: var(--card);
+  border: 1px solid var(--line);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 108px;
+}
+
+.ing-card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+  background: var(--bone);
+}
+
+.ing-card--rose::before { background: var(--rose); }
+.ing-card--mint::before { background: var(--mint); }
+.ing-card--sky::before { background: var(--sky); }
+.ing-card--butter::before { background: var(--butter); }
+.ing-card--lilac::before { background: var(--lilac); }
+.ing-card--gold::before { background: var(--gold); }
+.ing-card--plum::before { background: var(--plum); }
+
+.ing-card__name {
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 1.3;
+}
+
+.ing-card__inci {
+  font-size: 11px;
+  color: var(--muted);
+  font-style: italic;
+  line-height: 1.3;
+}
+
+.ing-card__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: auto;
+}
+
+.ing-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ing-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  background: var(--card);
+  border: 1px solid var(--line);
+}
+
+.ing-row__dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ---------- 성분 상세 시트 ---------- */
+
+.ing-detail__head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.ing-detail__swatch {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  flex-shrink: 0;
+}
+
+.ing-detail__title {
+  font-family: var(--font-serif);
+  font-size: 22px;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.ing-detail__inci {
+  font-size: 12px;
+  color: var(--muted);
+  font-style: italic;
+  margin-top: 2px;
+}
+
+.ing-detail__short {
+  margin-top: 16px;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.ing-detail__long {
+  margin-top: 10px;
+  padding: 14px;
+  border-radius: 12px;
+  background: var(--bone);
+  font-size: 13.5px;
+  line-height: 1.65;
+  color: var(--ink-2);
+}
+
+.ing-detail__label {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 18px 0 8px;
+}
+
+.ing-detail__meta {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 12px;
+  font-size: 12px;
+  color: var(--slate);
+}
+
+.ing-detail__meta dt {
+  color: var(--muted);
+}
+
+.product-mini {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--card);
+  border: 1px solid var(--line);
+}
+
+.product-mini__name {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.product-mini__brand {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* ---------- 관리 ---------- */
+
+.care-hero {
+  padding: 20px;
+  border-radius: var(--radius-lg);
+  margin-bottom: 18px;
+}
+
+.care-hero__icon {
+  font-size: 30px;
+}
+
+.care-hero__title {
+  font-family: var(--font-serif);
+  font-size: 24px;
+  margin-top: 8px;
+}
+
+.care-hero__desc {
+  margin-top: 8px;
+  font-size: 13.5px;
+  color: var(--ink-2);
+  line-height: 1.55;
+}
+
+.care-card {
+  position: relative;
+  text-align: left;
+  padding: 16px;
+  border-radius: var(--radius);
+  min-height: 132px;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.1s;
+}
+
+.care-card:active {
+  transform: scale(0.98);
+}
+
+.care-card__icon {
+  font-size: 24px;
+}
+
+.care-card__title {
+  font-weight: 700;
+  font-size: 15px;
+  margin-top: 8px;
+}
+
+.care-card__count {
+  margin-top: auto;
+  font-size: 11.5px;
+  color: var(--slate);
+}
+
+/* ---------- 궁합 기록 ---------- */
+
+.match-group {
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--card);
+  border: 1px solid var(--line);
+}
+
+.match-group + .match-group {
+  margin-top: 8px;
+}
+
+.match-group__title {
+  font-size: 12.5px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}

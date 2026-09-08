@@ -8,6 +8,8 @@ import { ProductsPage } from '@/pages/Products';
 import { IngredientsPage } from '@/pages/Ingredients';
 import { CarePage } from '@/pages/Care';
 import { DiaryPage } from '@/pages/Diary';
+import { IngredientSheet } from '@/components/ingredients/IngredientSheet';
+import { CareOverlay } from '@/components/care/CareOverlay';
 
 function CurrentPage() {
   const page = useAppStore((s) => s.page);
@@ -53,11 +55,7 @@ function Overlays() {
         </Overlay>
       );
     case 'care':
-      return (
-        <Overlay title="집중 관리" onClose={popOverlay}>
-          <div className="empty">3차시에서 완성돼요 — 고민별 추천 성분</div>
-        </Overlay>
-      );
+      return <CareOverlay concernId={top.concernId} />;
     default:
       return null;
   }
@@ -107,6 +105,7 @@ export default function App() {
       <CurrentPage />
       <BottomNav />
       <Overlays />
+      <IngredientSheet />
       <Toast />
     </div>
   );

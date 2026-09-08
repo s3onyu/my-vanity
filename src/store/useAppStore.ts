@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { create } from 'zustand';
 import type {
   BoardPost,
@@ -255,8 +256,14 @@ export const useAppStore = create<AppState>((set, get) => ({
 
 // ---------------------------------------------------------------- selectors
 
-export const selectRoutine = (type: RoutineType) => (s: AppState) =>
-  s.routines.filter((r) => r.routineType === type).sort((a, b) => a.sortOrder - b.sortOrder);
+/** 특정 루틴(AM/PM)의 제품을 순서대로 — 참조가 안정적이어야 하므로 useMemo 로 감싼다 */
+export function useRoutine(type: RoutineType): RoutineItem[] {
+  const routines = useAppStore((s) => s.routines);
+  return useMemo(
+    () => routines.filter((r) => r.routineType === type).sort((a, b) => a.sortOrder - b.sortOrder),
+    [routines, type],
+  );
+}
 
 export const selectMatchOf = (productId: string) => (s: AppState) =>
   s.matches.find((m) => m.productId === productId)?.matchType ?? null;
