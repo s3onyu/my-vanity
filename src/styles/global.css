@@ -1,0 +1,10 @@
+:root {
+  --ink: #1a1f1c;
+  --paper: #fdfbf5;
+  --font-sans: 'Pretendard Variable', 'Inter', -apple-system, system-ui, sans-serif;
+  --font-serif: 'Fraunces', Georgia, serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--font-sans); background: #efeae0; color: var(--ink); }
+.app-frame { max-width: 430px; margin: 0 auto; min-height: 100vh; background: var(--paper); padding: 24px; }
+.serif { font-family: var(--font-serif); }
