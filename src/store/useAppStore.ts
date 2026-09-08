@@ -25,7 +25,7 @@ export type Overlay =
   | { type: 'tutorial'; id?: string }
   | { type: 'profile-edit' }
   | { type: 'care'; concernId: ConcernId }
-  | { type: 'photo-search' };
+  | { type: 'photo-search'; registerOnly?: boolean };
 
 export interface IngredientFilter {
   query?: string;
@@ -66,7 +66,7 @@ interface AppState {
   addToRoutine: (productId: string, routineType?: RoutineType) => Promise<'added' | 'exists'>;
   removeFromRoutine: (itemId: string) => Promise<void>;
   moveRoutineItem: (itemId: string, dir: -1 | 1) => Promise<void>;
-  saveLog: (log: Omit<SkinLog, 'id' | 'products'> & { id?: string }) => Promise<void>;
+  saveLog: (log: Omit<SkinLog, 'id'> & { id?: string }) => Promise<void>;
   deleteLog: (id: string) => Promise<void>;
   toggleMatch: (productId: string, matchType: MatchType) => Promise<'set' | 'unset'>;
   removeMatch: (id: string) => Promise<void>;
@@ -90,17 +90,23 @@ interface AppState {
 
 let toastTimer: ReturnType<typeof setTimeout> | null = null;
 
-/** 아침/저녁 분리 이전에 저장된 기록을 현재 루틴 기준으로 나눠준다 */
-function normalizeLog(l: SkinLog, routines: RoutineItem[]): SkinLog {
-  if (Array.isArray(l.amProducts) && Array.isArray(l.pmProducts)) return l;
-  const am = new Set(routines.filter((r) => r.routineType === 'AM').map((r) => r.productId));
-  const products = l.products ?? [];
-  return {
-    ...l,
-    amProducts: products.filter((p) => am.has(p)),
-    pmProducts: products.filter((p) => !am.has(p)),
-    products,
-  };
+const sortLogs = (logs: SkinLog[]) => [...logs].sort((a, b) => b.date.localeCompare(a.date) || (a.period === 'PM' ? -1 : 1));
+
+/** 아침/저녁 분리 이전에 저장된 기록을 시간대 기록으로 바꿔준다 */
+function normalizeLogs(raw: SkinLog[]): SkinLog[] {
+  const out: SkinLog[] = [];
+  raw.forEach((l) => {
+    const legacy = l as SkinLog & { amProducts?: string[]; pmProducts?: string[] };
+    if (legacy.period === 'AM' || legacy.period === 'PM') {
+      out.push({ ...l, products: l.products ?? [] });
+      return;
+    }
+    const am = legacy.amProducts ?? [];
+    const pm = legacy.pmProducts ?? legacy.products ?? [];
+    if (am.length) out.push({ ...l, id: `${l.id}-am`, period: 'AM', products: am });
+    out.push({ ...l, id: am.length ? `${l.id}-pm` : l.id, period: 'PM', products: pm });
+  });
+  return sortLogs(out);
 }
 
 /** 저장 실패를 조용히 삼키지 않고 토스트로 알린다 */
@@ -147,17 +153,31 @@ export const useAppStore = create<AppState>((set, get) => ({
       fallbackToLocal();
       [data, posts] = await Promise.all([repo.load(), repo.listPosts()]);
     }
+    const logs = normalizeLogs(data.logs);
     set({
       hydrated: true,
       storage: { kind: repo.kind, fallback, error, restoredAt: new Date().toISOString() },
       profile: data.profile,
       routines: [...data.routines].sort((a, b) => a.sortOrder - b.sortOrder),
-      logs: data.logs.map((l) => normalizeLog(l, data.routines)).sort((a, b) => b.date.localeCompare(a.date)),
+      logs,
       matches: data.matches,
       customProducts: data.customProducts.map((p) => ({ ...p, custom: true })),
       posts,
     });
     if (error) get().showToast('서버에 연결하지 못해 이 기기에만 저장해요');
+
+    // 아침/저녁 분리 이전 기록이 있으면 한 번만 저장소에도 옮겨 적는다 (다음 방문부터는 그대로 복원)
+    const legacy = data.logs.filter((l) => l.period !== 'AM' && l.period !== 'PM');
+    if (legacy.length) {
+      const legacyIds = new Set(legacy.map((l) => l.id));
+      await persist(
+        Promise.all([
+          ...logs.filter((l) => !legacyIds.has(l.id) || l.period).map((l) => repo.upsertLog(l)),
+          ...legacy.filter((l) => !logs.some((m) => m.id === l.id)).map((l) => repo.deleteLog(l.id)),
+        ]).then(() => undefined),
+        get().showToast,
+      );
+    }
   },
 
   async saveProfile(input) {
@@ -220,11 +240,12 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   async saveLog(input) {
     const { logs } = get();
-    // 같은 날짜의 기록이 있으면 덮어쓴다
-    const existing = input.id ? logs.find((l) => l.id === input.id) : logs.find((l) => l.date === input.date);
-    const products = [...new Set([...input.amProducts, ...input.pmProducts])];
-    const log: SkinLog = { ...input, products, id: existing?.id ?? input.id ?? uid('log') };
-    set({ logs: [...logs.filter((l) => l.id !== log.id), log].sort((a, b) => b.date.localeCompare(a.date)) });
+    // 같은 날짜·시간대(아침/저녁)의 기록이 있으면 덮어쓴다
+    const existing = input.id
+      ? logs.find((l) => l.id === input.id)
+      : logs.find((l) => l.date === input.date && l.period === input.period);
+    const log: SkinLog = { ...input, products: [...new Set(input.products)], id: existing?.id ?? input.id ?? uid('log') };
+    set({ logs: sortLogs([...logs.filter((l) => l.id !== log.id), log]) });
     await persist(repo.upsertLog(log), get().showToast);
   },
 

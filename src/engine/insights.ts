@@ -1,4 +1,4 @@
-import type { Product, RoutineItem, SkinLog } from '@/types';
+import type { Product, RoutineItem, RoutineType, SkinLog } from '@/types';
 import { addDays, dayOfWeek, DAY_NAMES, todayISO } from '@/lib/date';
 import type { Catalog } from './catalog';
 import { EXFOLIATION_FAMILY, FAMILY_LABEL, type ExfoliationFamily } from './constants';
@@ -37,6 +37,8 @@ export interface SuspectProduct {
   diff: number;
   irritatedDays: number;
   calmDays: number;
+  /** 어느 시간대 기록에 등장했는지 */
+  periods: RoutineType[];
 }
 
 export interface ProductStartEffect {
@@ -56,10 +58,13 @@ export interface WeekdayPattern {
 
 export interface Insights {
   enabled: boolean;
-  logCount: number;
+  /** 기록된 날짜 수 (아침·저녁을 같은 날 남겨도 1일) */
+  dayCount: number;
+  entryCount: number;
   comparisons: MetricComparison[];
-  comfortBars: { date: string; value: number | null }[];
-  irritationNote: { avg: number; families: ExfoliationFamily[]; familyLabels: string[] } | null;
+  /** 하루의 아침·저녁 평균 */
+  comfortBars: { date: string; value: number | null; am: number | null; pm: number | null }[];
+  irritationNote: { avg: number; families: ExfoliationFamily[]; familyLabels: string[]; worsePeriod: RoutineType | null } | null;
   drynessNote: { avg: number } | null;
   oilinessNote: { avg: number } | null;
   suspects: SuspectProduct[];
@@ -75,7 +80,7 @@ const inRange = (date: string, from: string, to: string) => date >= from && date
 
 /**
  * 피부 기록 인사이트 자동 분석 (명세 5-7).
- * 모든 결과는 상관관계일 뿐 인과관계가 아니다 — UI 에서 고정 문구와 함께 표시한다.
+ * 기록은 아침/저녁 각각 하나의 항목(entry)이며, 모든 결과는 상관관계일 뿐 인과관계가 아니다.
  */
 export function analyzeLogs(
   logs: SkinLog[],
@@ -83,10 +88,11 @@ export function analyzeLogs(
   catalog: Catalog,
   today = todayISO(),
 ): Insights {
-  const sorted = [...logs].sort((a, b) => a.date.localeCompare(b.date));
-  const enabled = sorted.length >= 3;
+  const sorted = [...logs].sort((a, b) => a.date.localeCompare(b.date) || (a.period === 'AM' ? -1 : 1));
+  const dayCount = new Set(sorted.map((l) => l.date)).size;
+  const enabled = dayCount >= 3;
 
-  // ---- 최근 7일 vs 이전 7일
+  // ---- 최근 7일 vs 이전 7일 (항목 평균)
   const recentFrom = addDays(today, -6);
   const prevFrom = addDays(today, -13);
   const prevTo = addDays(today, -7);
@@ -106,11 +112,15 @@ export function analyzeLogs(
     };
   });
 
-  // ---- 14일 편안함 막대
-  const byDate = new Map(sorted.map((l) => [l.date, l]));
+  // ---- 14일 편안함 막대 (하루 = 아침·저녁 평균)
+  const byDate = new Map<string, SkinLog[]>();
+  sorted.forEach((l) => byDate.set(l.date, [...(byDate.get(l.date) ?? []), l]));
   const comfortBars = Array.from({ length: 14 }, (_, i) => {
     const date = addDays(today, i - 13);
-    return { date, value: byDate.get(date)?.comfort ?? null };
+    const entries = byDate.get(date) ?? [];
+    const am = entries.find((e) => e.period === 'AM')?.comfort ?? null;
+    const pm = entries.find((e) => e.period === 'PM')?.comfort ?? null;
+    return { date, value: avg(entries.map((e) => e.comfort)), am, pm };
   });
 
   // ---- 자극감 / 건조함 / 번들거림 평균 (최근 7일, 없으면 전체)
@@ -129,12 +139,16 @@ export function analyzeLogs(
       });
     });
     const list = [...families];
-    irritationNote = { avg: irritationAvg, families: list, familyLabels: list.map((f) => FAMILY_LABEL[f]) };
+    const amAvg = avg(basis.filter((l) => l.period === 'AM').map((l) => l.irritation));
+    const pmAvg = avg(basis.filter((l) => l.period === 'PM').map((l) => l.irritation));
+    const worsePeriod: RoutineType | null =
+      amAvg !== null && pmAvg !== null && Math.abs(amAvg - pmAvg) >= 0.8 ? (amAvg > pmAvg ? 'AM' : 'PM') : null;
+    irritationNote = { avg: irritationAvg, families: list, familyLabels: list.map((f) => FAMILY_LABEL[f]), worsePeriod };
   }
   const drynessNote = drynessAvg !== null && drynessAvg >= 3.5 ? { avg: drynessAvg } : null;
   const oilinessNote = oilinessAvg !== null && oilinessAvg >= 3.5 ? { avg: oilinessAvg } : null;
 
-  // ---- 자극 있던 날 vs 편안했던 날의 제품 등장 비율 차이
+  // ---- 자극 있던 기록 vs 편안했던 기록의 제품 등장 비율 차이 (항목 단위 → 아침/저녁 제품이 자연스럽게 구분됨)
   const irritated = sorted.filter((l) => l.irritation >= 4);
   const calm = sorted.filter((l) => l.irritation <= 2 && l.comfort >= 4);
   const suspects: SuspectProduct[] = [];
@@ -150,7 +164,8 @@ export function analyzeLogs(
       const calmRate = calmDays / calm.length;
       const diff = irritatedRate - calmRate;
       if (irritatedDays >= 2 && diff >= 0.4) {
-        suspects.push({ product, irritatedRate, calmRate, diff, irritatedDays, calmDays });
+        const periods = [...new Set(sorted.filter((l) => l.products.includes(pid)).map((l) => l.period))];
+        suspects.push({ product, irritatedRate, calmRate, diff, irritatedDays, calmDays, periods });
       }
     });
     suspects.sort((a, b) => b.diff - a.diff);
@@ -198,7 +213,8 @@ export function analyzeLogs(
 
   return {
     enabled,
-    logCount: sorted.length,
+    dayCount,
+    entryCount: sorted.length,
     comparisons,
     comfortBars,
     irritationNote,

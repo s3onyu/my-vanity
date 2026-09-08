@@ -76,15 +76,14 @@ create table if not exists public.skin_logs (
   id         text primary key,
   user_id    uuid not null references auth.users(id) on delete cascade,
   date       date not null,
-  products    text[] not null default '{}',
-  am_products text[] not null default '{}',
-  pm_products text[] not null default '{}',
+  period     text not null default 'PM' check (period in ('AM','PM')),
+  products   text[] not null default '{}',
   comfort    smallint not null check (comfort between 1 and 5),
   dryness    smallint not null check (dryness between 1 and 5),
   oiliness   smallint not null check (oiliness between 1 and 5),
   irritation smallint not null check (irritation between 1 and 5),
   memo       text not null default '',
-  unique (user_id, date)
+  unique (user_id, date, period)
 );
 create index if not exists skin_logs_user_idx on public.skin_logs(user_id);
 

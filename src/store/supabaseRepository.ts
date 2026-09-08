@@ -36,9 +36,8 @@ interface RoutineRow {
 interface LogRow {
   id: string;
   date: string;
+  period: string | null;
   products: string[] | null;
-  am_products: string[] | null;
-  pm_products: string[] | null;
   comfort: number;
   dryness: number;
   oiliness: number;
@@ -91,9 +90,8 @@ const toRoutine = (r: RoutineRow): RoutineItem => ({
 const toLog = (r: LogRow): SkinLog => ({
   id: r.id,
   date: r.date,
+  period: (r.period as RoutineType) ?? 'PM',
   products: r.products ?? [],
-  amProducts: r.am_products ?? [],
-  pmProducts: r.pm_products ?? (r.products ?? []),
   comfort: r.comfort,
   dryness: r.dryness,
   oiliness: r.oiliness,
@@ -156,7 +154,7 @@ export function createSupabaseRepository(): Repository {
       const [pr, rt, lg, mt, cp] = await Promise.all([
         sb().from('profiles').select('*').eq('user_id', id).maybeSingle(),
         sb().from('user_routines').select('*').eq('user_id', id).order('sort_order'),
-        sb().from('skin_logs').select('*').eq('user_id', id).order('date', { ascending: false }),
+        sb().from('skin_logs').select('*').eq('user_id', id).order('date', { ascending: false }).order('period'),
         sb().from('user_product_matches').select('*').eq('user_id', id),
         sb().from('user_products').select('*').eq('user_id', id).order('created_at'),
       ]);
@@ -211,17 +209,16 @@ export function createSupabaseRepository(): Repository {
         id: log.id,
         user_id: id,
         date: log.date,
+        period: log.period,
         products: log.products,
-        am_products: log.amProducts,
-        pm_products: log.pmProducts,
         comfort: log.comfort,
         dryness: log.dryness,
         oiliness: log.oiliness,
         irritation: log.irritation,
         memo: log.memo,
       };
-      // 같은 날짜의 기록은 하나만 — (user_id, date) 충돌 시 기존 행을 갱신한다
-      const { error } = await sb().from('skin_logs').upsert(row, { onConflict: 'user_id,date' });
+      // 같은 날짜·시간대의 기록은 하나만 — (user_id, date, period) 충돌 시 기존 행을 갱신한다
+      const { error } = await sb().from('skin_logs').upsert(row, { onConflict: 'user_id,date,period' });
       check('skin_logs upsert', error);
     },
 

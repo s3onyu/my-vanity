@@ -124,15 +124,14 @@ export interface RoutineItem {
   startedAt: string;
 }
 
+/** 피부 기록 — 하루에 아침(AM)·저녁(PM) 각각 하나씩 남긴다 */
 export interface SkinLog {
   id: string;
   /** YYYY-MM-DD */
   date: string;
-  /** 아침에 쓴 제품 id */
-  amProducts: string[];
-  /** 저녁에 쓴 제품 id */
-  pmProducts: string[];
-  /** 아침+저녁 합집합 (분석용, 저장 시 자동 계산) */
+  /** 아침 기록인지 저녁 기록인지 */
+  period: RoutineType;
+  /** 이 시간대에 쓴 제품 id */
   products: string[];
   comfort: number; // 1~5
   dryness: number; // 1~5

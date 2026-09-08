@@ -15,7 +15,9 @@ const METRICS: { key: Metric; label: string; low: string; high: string }[] = [
 ];
 
 const MEMO_MAX = 300;
-const PERIOD_LABEL: Record<RoutineType, string> = { AM: '☀️ 아침에 쓴 제품', PM: '🌙 저녁에 쓴 제품' };
+const PERIOD_LABEL: Record<RoutineType, string> = { AM: '아침', PM: '저녁' };
+const PERIOD_ICON: Record<RoutineType, string> = { AM: '☀️', PM: '🌙' };
+const DEFAULT_VALUES: Record<Metric, number> = { comfort: 3, dryness: 3, oiliness: 3, irritation: 1 };
 
 /** 루틴에 담긴 제품 id 목록 (아침/저녁) */
 function useRoutineProductIds(): Record<RoutineType, string[]> {
@@ -31,43 +33,27 @@ function useRoutineProductIds(): Record<RoutineType, string[]> {
   }, [routines]);
 }
 
-function ProductChecklist({
-  period,
-  candidates,
-  selected,
-  onToggle,
-}: {
-  period: RoutineType;
-  candidates: string[];
-  selected: string[];
-  onToggle: (id: string) => void;
-}) {
-  // 루틴 제품 + (예전 기록에만 있는) 선택된 제품을 함께 보여준다
-  const ids = [...candidates, ...selected.filter((id) => !candidates.includes(id))];
+function PeriodSegment({ value, onChange, done }: { value: RoutineType; onChange: (p: RoutineType) => void; done: Record<RoutineType, boolean> }) {
   return (
-    <div className="field">
-      <label>{PERIOD_LABEL[period]}</label>
-      {ids.length === 0 ? (
-        <span className="field-hint">{period === 'AM' ? '아침' : '저녁'} 루틴에 제품을 담으면 여기서 체크할 수 있어요.</span>
-      ) : (
-        <div className="chip-row">
-          {ids.map((id) => {
-            const p = findProduct(id);
-            if (!p) return null;
-            const on = selected.includes(id);
-            return (
-              <Chip key={id} small active={on} onClick={() => onToggle(id)}>
-                {on ? '✓ ' : ''}
-                {p.name}
-              </Chip>
-            );
-          })}
-        </div>
-      )}
+    <div className="segment" role="tablist" aria-label="기록 시간대">
+      {(['AM', 'PM'] as const).map((p) => (
+        <button
+          key={p}
+          type="button"
+          role="tab"
+          aria-selected={value === p}
+          className={`segment__btn${value === p ? ' is-active' : ''}`}
+          onClick={() => onChange(p)}
+        >
+          {PERIOD_ICON[p]} {PERIOD_LABEL[p]}
+          {done[p] ? ' ✓' : ''}
+        </button>
+      ))}
     </div>
   );
 }
 
+/** 아침/저녁 기록 폼 — (날짜, 시간대) 조합마다 하나의 기록 */
 function DiaryForm() {
   const logs = useAppStore((s) => s.logs);
   const saveLog = useAppStore((s) => s.saveLog);
@@ -76,47 +62,53 @@ function DiaryForm() {
   const today = todayISO();
 
   const [date, setDate] = useState(today);
-  const [am, setAm] = useState<string[]>([]);
-  const [pm, setPm] = useState<string[]>([]);
-  const [values, setValues] = useState<Record<Metric, number>>({ comfort: 3, dryness: 3, oiliness: 3, irritation: 1 });
+  const [period, setPeriod] = useState<RoutineType>(() => (new Date().getHours() < 15 ? 'AM' : 'PM'));
+  const [products, setProducts] = useState<string[]>([]);
+  const [values, setValues] = useState<Record<Metric, number>>(DEFAULT_VALUES);
   const [memo, setMemo] = useState('');
   const [error, setError] = useState<string | null>(null);
 
-  // 날짜를 바꾸면 그 날의 기록이 있을 때 불러오고, 없으면 현재 루틴을 기본 체크한다
+  const existing = logs.find((l) => l.date === date && l.period === period);
+  const done: Record<RoutineType, boolean> = {
+    AM: logs.some((l) => l.date === date && l.period === 'AM'),
+    PM: logs.some((l) => l.date === date && l.period === 'PM'),
+  };
+
+  // 날짜·시간대를 바꾸면 그 기록을 불러오고, 없으면 해당 루틴 제품을 기본 체크한다
   useEffect(() => {
-    const existing = logs.find((l) => l.date === date);
     if (existing) {
-      setAm(existing.amProducts);
-      setPm(existing.pmProducts);
+      setProducts(existing.products);
       setValues({ comfort: existing.comfort, dryness: existing.dryness, oiliness: existing.oiliness, irritation: existing.irritation });
       setMemo(existing.memo);
     } else {
-      setAm(routineIds.AM);
-      setPm(routineIds.PM);
-      setValues({ comfort: 3, dryness: 3, oiliness: 3, irritation: 1 });
+      setProducts(routineIds[period]);
+      setValues(DEFAULT_VALUES);
       setMemo('');
     }
+    setError(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [date]);
+  }, [date, period]);
 
-  const existing = logs.find((l) => l.date === date);
-  const toggle = (setter: React.Dispatch<React.SetStateAction<string[]>>) => (id: string) =>
-    setter((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]));
+  const candidates = [...routineIds[period], ...products.filter((id) => !routineIds[period].includes(id))];
 
   const submit = async () => {
     if (!date) return setError('날짜를 골라주세요.');
     if (date > today) return setError('미래 날짜는 기록할 수 없어요.');
     if (memo.length > MEMO_MAX) return setError(`메모는 ${MEMO_MAX}자 이하로 써주세요.`);
     setError(null);
-    await saveLog({ date, amProducts: am, pmProducts: pm, memo: memo.trim(), ...values });
-    showToast(existing ? '기록을 업데이트했어요' : '오늘의 기록을 남겼어요');
+    await saveLog({ date, period, products, memo: memo.trim(), ...values });
+    showToast(existing ? `${PERIOD_LABEL[period]} 기록을 업데이트했어요` : `${PERIOD_LABEL[period]} 기록을 남겼어요`);
+    // 아침을 막 남겼고 저녁이 아직이면 저녁 탭으로 안내
+    if (!existing && period === 'AM' && !done.PM && date === today) {
+      setTimeout(() => showToast('저녁에 다시 와서 🌙 저녁 기록도 남겨주세요'), 2700);
+    }
   };
 
   return (
     <div className="card">
       <div className="row row--between">
         <label htmlFor="log-date" className="h3">
-          {date === today ? '오늘' : formatKoDate(date)} 컨디션
+          {date === today ? '오늘' : formatKoDate(date)}
         </label>
         <input
           id="log-date"
@@ -128,11 +120,41 @@ function DiaryForm() {
           onChange={(e) => setDate(e.target.value)}
         />
       </div>
-      {existing && <p className="small muted mt-1">이 날짜의 기록이 있어요. 저장하면 덮어써요.</p>}
+      <div className="mt-2">
+        <PeriodSegment value={period} onChange={setPeriod} done={done} />
+      </div>
+      <p className="small muted mt-1">
+        {existing
+          ? `${PERIOD_ICON[period]} ${PERIOD_LABEL[period]} 기록이 있어요. 저장하면 덮어써요.`
+          : `${PERIOD_ICON[period]} ${PERIOD_LABEL[period]} 루틴을 마친 뒤의 피부 상태를 남겨요.`}
+      </p>
 
-      <div className="mt-3">
-        <ProductChecklist period="AM" candidates={routineIds.AM} selected={am} onToggle={toggle(setAm)} />
-        <ProductChecklist period="PM" candidates={routineIds.PM} selected={pm} onToggle={toggle(setPm)} />
+      <div className="field mt-3">
+        <label>
+          {PERIOD_ICON[period]} {PERIOD_LABEL[period]}에 쓴 제품
+        </label>
+        {candidates.length === 0 ? (
+          <span className="field-hint">{PERIOD_LABEL[period]} 루틴에 제품을 담으면 여기서 체크할 수 있어요.</span>
+        ) : (
+          <div className="chip-row">
+            {candidates.map((id) => {
+              const p = findProduct(id);
+              if (!p) return null;
+              const on = products.includes(id);
+              return (
+                <Chip
+                  key={id}
+                  small
+                  active={on}
+                  onClick={() => setProducts((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]))}
+                >
+                  {on ? '✓ ' : ''}
+                  {p.name}
+                </Chip>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {METRICS.map((m) => (
@@ -148,7 +170,7 @@ function DiaryForm() {
             step={1}
             value={values[m.key]}
             onChange={(e) => setValues((v) => ({ ...v, [m.key]: Number(e.target.value) }))}
-            aria-label={m.label}
+            aria-label={`${PERIOD_LABEL[period]} ${m.label}`}
           />
           <div className="slider__ends">
             <span>{m.low}</span>
@@ -173,38 +195,27 @@ function DiaryForm() {
       </div>
       {error && <p className="field-error mb-2">{error}</p>}
       <button type="button" className="btn btn--block" onClick={submit}>
-        {existing ? '기록 업데이트' : '기록 남기기'}
+        {PERIOD_ICON[period]} {PERIOD_LABEL[period]} 기록 {existing ? '업데이트' : '남기기'}
       </button>
-      <p className="fine-print">컨디션 점수는 하루 기준이고, 사용 제품은 아침/저녁으로 나눠 기록해요.</p>
     </div>
   );
 }
 
-function ProductBadges({ ids, icon }: { ids: string[]; icon: string }) {
-  if (ids.length === 0) return null;
-  return (
-    <div className="row row--wrap mt-1" style={{ gap: 4 }}>
-      <span className="tiny muted">{icon}</span>
-      {ids.map((id) => (
-        <Badge key={id}>{findProduct(id)?.name ?? id}</Badge>
-      ))}
-    </div>
-  );
-}
-
-function LogRow({ log }: { log: SkinLog }) {
+function EntryBlock({ log }: { log: SkinLog }) {
   const deleteLog = useAppStore((s) => s.deleteLog);
   const showToast = useAppStore((s) => s.showToast);
   return (
-    <li className="log-row">
+    <div className="log-entry">
       <div className="row row--between">
-        <span className="h3">{formatKoDate(log.date)}</span>
+        <span className="log-entry__period">
+          {PERIOD_ICON[log.period]} {PERIOD_LABEL[log.period]}
+        </span>
         <button
           type="button"
           className="icon-btn"
-          aria-label="기록 삭제"
+          aria-label={`${PERIOD_LABEL[log.period]} 기록 삭제`}
           onClick={async () => {
-            if (window.confirm('이 날의 기록을 지울까요?')) {
+            if (window.confirm(`${formatKoDate(log.date, false)} ${PERIOD_LABEL[log.period]} 기록을 지울까요?`)) {
               await deleteLog(log.id);
               showToast('기록을 지웠어요');
             }
@@ -225,10 +236,55 @@ function LogRow({ log }: { log: SkinLog }) {
           </div>
         ))}
       </div>
-      <ProductBadges ids={log.amProducts} icon="☀️" />
-      <ProductBadges ids={log.pmProducts} icon="🌙" />
+      {log.products.length > 0 && (
+        <div className="row row--wrap mt-1" style={{ gap: 4 }}>
+          {log.products.map((id) => (
+            <Badge key={id}>{findProduct(id)?.name ?? id}</Badge>
+          ))}
+        </div>
+      )}
       {log.memo && <p className="small mt-1">{log.memo}</p>}
-    </li>
+    </div>
+  );
+}
+
+/** 타임라인 — 날짜별로 묶고 아침·저녁 기록을 나란히 */
+function Timeline() {
+  const logs = useAppStore((s) => s.logs);
+  const days = useMemo(() => {
+    const map = new Map<string, SkinLog[]>();
+    logs.forEach((l) => map.set(l.date, [...(map.get(l.date) ?? []), l]));
+    return [...map.entries()]
+      .sort((a, b) => b[0].localeCompare(a[0]))
+      .map(([date, entries]) => ({ date, entries: entries.sort((a, b) => a.period.localeCompare(b.period)) }));
+  }, [logs]);
+
+  if (days.length === 0) {
+    return (
+      <div className="empty">
+        <strong>아직 기록이 없어요</strong>오늘 기록 탭에서 아침 또는 저녁 컨디션을 남겨보세요.
+      </div>
+    );
+  }
+
+  return (
+    <ol className="stack">
+      {days.map((d) => (
+        <li key={d.date} className="log-row">
+          <div className="row row--between">
+            <span className="h3">{formatKoDate(d.date)}</span>
+            <span className="tiny muted">
+              {d.entries.map((e) => PERIOD_ICON[e.period]).join(' ')} {d.entries.length}건
+            </span>
+          </div>
+          <div className="stack stack--sm mt-2">
+            {d.entries.map((e) => (
+              <EntryBlock key={e.id} log={e} />
+            ))}
+          </div>
+        </li>
+      ))}
+    </ol>
   );
 }
 
@@ -244,17 +300,12 @@ function Insights() {
     return (
       <div className="empty">
         <strong>기록이 3일 이상 쌓이면 인사이트가 열려요</strong>
-        지금 {ins.logCount}일 기록됐어요. 최근 7일 비교, 편안함 추세, 자극이 있던 날의 제품 패턴을 분석해드려요.
+        지금 {ins.dayCount}일({ins.entryCount}건) 기록됐어요. 최근 7일 비교, 편안함 추세, 자극이 있던 기록의 제품 패턴을 분석해드려요.
       </div>
     );
   }
 
   const max = Math.max(1, ...ins.comfortBars.map((b) => b.value ?? 0));
-  const periodOf = (productId: string) => {
-    const inAm = logs.some((l) => l.amProducts.includes(productId));
-    const inPm = logs.some((l) => l.pmProducts.includes(productId));
-    return inAm && inPm ? '아침·저녁' : inAm ? '아침' : inPm ? '저녁' : '';
-  };
 
   return (
     <div className="stack">
@@ -279,7 +330,7 @@ function Insights() {
           })}
         </div>
         <p className="tiny muted mt-2">
-          최근 {ins.comparisons[0].recentCount}일 · 이전 {ins.comparisons[0].previousCount}일 기록 기준 평균이에요.
+          최근 {ins.comparisons[0].recentCount}건 · 이전 {ins.comparisons[0].previousCount}건의 아침·저녁 기록 평균이에요.
         </p>
       </div>
 
@@ -291,12 +342,13 @@ function Insights() {
               <div
                 className="bars__bar"
                 style={{ height: b.value ? `${(b.value / max) * 100}%` : '2px', opacity: b.value ? 1 : 0.35 }}
-                title={`${b.date}: ${b.value ?? '기록 없음'}`}
+                title={`${b.date}: 아침 ${b.am ?? '–'} · 저녁 ${b.pm ?? '–'}`}
               />
               <span className="bars__day">{b.date.slice(8)}</span>
             </div>
           ))}
         </div>
+        <p className="tiny muted mt-1">막대는 그날 아침·저녁 기록의 평균이에요.</p>
       </div>
 
       {ins.irritationNote && (
@@ -308,6 +360,8 @@ function Insights() {
             {ins.irritationNote.families.length >= 2
               ? ' 서로 다른 계열이 겹치면 자극이 누적될 수 있어요. 한 가지만 남기고 격일로 써보는 방식이 자주 권장돼요.'
               : ' 각질 계열 자체는 많지 않아요. 새로 추가한 제품이나 향료, 사용 빈도를 함께 살펴보세요.'}
+            {ins.irritationNote.worsePeriod &&
+              ` 특히 ${PERIOD_LABEL[ins.irritationNote.worsePeriod]} 기록에서 자극감이 더 높았어요 — ${PERIOD_LABEL[ins.irritationNote.worsePeriod]} 루틴부터 살펴보세요.`}
           </p>
           <button type="button" className="link-btn mt-1" onClick={() => navigate('products')}>
             루틴 궁합 근거 보기 →
@@ -335,16 +389,16 @@ function Insights() {
 
       {ins.suspects.length > 0 && (
         <div className="card">
-          <div className="h3">자극이 있던 날에 유독 많이 등장한 제품</div>
+          <div className="h3">자극이 있던 기록에 유독 많이 등장한 제품</div>
           <p className="tiny muted mt-1">
-            자극감 4점 이상이던 {ins.suspectBasis.irritatedDays}일 vs 편안했던 {ins.suspectBasis.calmDays}일의 제품 등장 비율 차이예요.
+            자극감 4점 이상이던 {ins.suspectBasis.irritatedDays}건 vs 편안했던 {ins.suspectBasis.calmDays}건의 제품 등장 비율 차이예요.
           </p>
           <div className="stack stack--sm mt-2">
             {ins.suspects.map((s) => (
               <div key={s.product.id} className="suspect">
                 <div className="flex-1">
                   <div className="product-card__brand">
-                    {s.product.brand} · {periodOf(s.product.id)}
+                    {s.product.brand} · {s.periods.map((p) => `${PERIOD_ICON[p]} ${PERIOD_LABEL[p]}`).join(' · ')}
                   </div>
                   <div className="product-card__name">{s.product.name}</div>
                 </div>
@@ -368,7 +422,7 @@ function Insights() {
                 <div className="flex-1">
                   <div className="product-card__name">{e.product.name}</div>
                   <div className="tiny muted">
-                    {formatKoDate(e.startedAt, false)} 시작 · 이전 {e.beforeCount}일 / 이후 {e.afterCount}일
+                    {formatKoDate(e.startedAt, false)} 시작 · 이전 {e.beforeCount}건 / 이후 {e.afterCount}건
                   </div>
                 </div>
                 <div className="suspect__stat">
@@ -406,6 +460,7 @@ function Insights() {
 export function DiaryPage() {
   const logs = useAppStore((s) => s.logs);
   const [tab, setTab] = useState<'today' | 'timeline' | 'insights'>('today');
+  const dayCount = useMemo(() => new Set(logs.map((l) => l.date)).size, [logs]);
 
   return (
     <div className="page">
@@ -414,14 +469,14 @@ export function DiaryPage() {
         <h1 className="h1">
           피부 <em>기록</em>
         </h1>
-        <p>오늘의 컨디션을 남기면 기록이 쌓일수록 인사이트가 열려요.</p>
+        <p>아침 루틴 뒤, 저녁 루틴 뒤 각각 컨디션을 남겨요. 기록이 쌓일수록 인사이트가 열려요.</p>
       </header>
 
       <div className="tabs" role="tablist">
         {(
           [
-            ['today', '오늘 기록'],
-            ['timeline', `타임라인 ${logs.length}`],
+            ['today', '기록하기'],
+            ['timeline', `타임라인 ${dayCount}일`],
             ['insights', '인사이트'],
           ] as const
         ).map(([id, label]) => (
@@ -439,18 +494,7 @@ export function DiaryPage() {
       </div>
 
       {tab === 'today' && <DiaryForm />}
-      {tab === 'timeline' &&
-        (logs.length === 0 ? (
-          <div className="empty">
-            <strong>아직 기록이 없어요</strong>오늘 기록 탭에서 첫 컨디션을 남겨보세요.
-          </div>
-        ) : (
-          <ol className="stack">
-            {logs.map((l) => (
-              <LogRow key={l.id} log={l} />
-            ))}
-          </ol>
-        ))}
+      {tab === 'timeline' && <Timeline />}
       {tab === 'insights' && <Insights />}
     </div>
   );
