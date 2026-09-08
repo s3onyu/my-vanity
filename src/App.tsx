@@ -7,6 +7,7 @@ import { CareOverlay } from '@/components/care/CareOverlay';
 import { BoardOverlay, PostDetailOverlay } from '@/components/board/BoardOverlay';
 import { PostFormOverlay } from '@/components/board/PostForm';
 import { TutorialOverlay } from '@/components/tutorial/TutorialOverlay';
+import { PhotoSearchOverlay } from '@/components/products/PhotoSearchOverlay';
 import { HomePage } from '@/pages/Home';
 import { ProductsPage } from '@/pages/Products';
 import { IngredientsPage } from '@/pages/Ingredients';
@@ -55,6 +56,8 @@ function Overlays() {
       return <TutorialOverlay key={top.id ?? 'list'} initialId={top.id} />;
     case 'care':
       return <CareOverlay concernId={top.concernId} />;
+    case 'photo-search':
+      return <PhotoSearchOverlay key={top.registerOnly ? 'register' : 'photo'} registerOnly={top.registerOnly} />;
     default:
       return null;
   }

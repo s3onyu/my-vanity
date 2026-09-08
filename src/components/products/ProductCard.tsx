@@ -45,6 +45,7 @@ export function ProductCard({ product, showMatch = true, action, footer }: Produ
   const addToRoutine = useAppStore((s) => s.addToRoutine);
   const activeRoutine = useAppStore((s) => s.activeRoutine);
   const showToast = useAppStore((s) => s.showToast);
+  const removeCustomProduct = useAppStore((s) => s.removeCustomProduct);
 
   const onAdd = async () => {
     const r = await addToRoutine(product.id);
@@ -63,10 +64,28 @@ export function ProductCard({ product, showMatch = true, action, footer }: Produ
         <div className="product-card__brand">{product.brand}</div>
         <div className="row" style={{ gap: 4 }}>
           <Badge>{product.category}</Badge>
-          {!product.verified && <Badge color="butter">데모·미검증</Badge>}
+          {product.custom ? <Badge color="mint">내가 등록</Badge> : !product.verified && <Badge color="butter">데모·미검증</Badge>}
         </div>
       </div>
-      <div className="product-card__name">{product.name}</div>
+      <div className="row">
+        {product.imageUrl && <img src={product.imageUrl} alt="" className="product-thumb" />}
+        <div className="product-card__name flex-1">{product.name}</div>
+        {product.custom && (
+          <button
+            type="button"
+            className="icon-btn"
+            aria-label="등록한 제품 삭제"
+            onClick={async () => {
+              if (window.confirm(`${product.name}을(를) 내 제품 목록에서 지울까요? 루틴과 기록에서도 빠져요.`)) {
+                await removeCustomProduct(product.id);
+                showToast('등록한 제품을 지웠어요');
+              }
+            }}
+          >
+            <Icon name="trash" size={14} />
+          </button>
+        )}
+      </div>
       <IngredientTags ids={product.keyIngredients} />
       <div className="product-card__actions">
         {showMatch && (
