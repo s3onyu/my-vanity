@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { ConcernId } from '@/types';
-import { CATALOG, getIngredient } from '@/data';
+import { getIngredient } from '@/data';
 import { CONCERN_MAP } from '@/data/concerns';
 import { recommend, type Recommendation } from '@/engine/recommend';
 import { Badge, Chip } from '@/components/ui/Chip';
 import { Icon } from '@/components/ui/Icon';
 import { useAppStore, useRoutine } from '@/store/useAppStore';
+import { useCatalog } from '@/store/catalog';
 import { IngredientTags } from './ProductCard';
 
 function RecommendCard({ rec }: { rec: Recommendation }) {
@@ -85,6 +86,7 @@ export function RecommendSection() {
   const pushOverlay = useAppStore((s) => s.pushOverlay);
   const openIngredient = useAppStore((s) => s.openIngredient);
   const current = useRoutine(activeRoutine);
+  const catalog = useCatalog();
 
   const myConcerns = profile?.concerns ?? [];
   const [tab, setTab] = useState<ConcernId | 'all'>(myConcerns[0] ?? 'all');
@@ -104,9 +106,9 @@ export function RecommendSection() {
           matches,
           concernFilter: tab,
         },
-        CATALOG,
+        catalog,
       ),
-    [activeRoutine, current, routines, profile?.skinType, myConcerns, matches, tab],
+    [activeRoutine, current, routines, profile?.skinType, myConcerns, matches, tab, catalog],
   );
 
   if (myConcerns.length === 0) {

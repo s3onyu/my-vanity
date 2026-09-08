@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
-import { CATALOG } from '@/data';
 import { analyzeRoutine } from '@/engine/compatibility';
 import { useAppStore, useRoutine } from '@/store/useAppStore';
+import { useCatalog } from '@/store/catalog';
 import { ProductSearch } from '@/components/products/ProductSearch';
 import { RoutineList } from '@/components/products/RoutineList';
 import { MatchRecords } from '@/components/products/MatchRecords';
@@ -13,10 +13,11 @@ export function ProductsPage() {
   const setActiveRoutine = useAppStore((s) => s.setActiveRoutine);
   const skinType = useAppStore((s) => s.profile?.skinType ?? null);
   const items = useRoutine(activeRoutine);
+  const catalog = useCatalog();
 
   const result = useMemo(
-    () => analyzeRoutine({ productIds: items.map((r) => r.productId), routineType: activeRoutine, skinType }, CATALOG),
-    [items, activeRoutine, skinType],
+    () => analyzeRoutine({ productIds: items.map((r) => r.productId), routineType: activeRoutine, skinType }, catalog),
+    [items, activeRoutine, skinType, catalog],
   );
 
   return (

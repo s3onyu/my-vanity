@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import type { RoutineType } from '@/types';
-import { CATALOG, ingredientOfTheDay } from '@/data';
+import { ingredientOfTheDay } from '@/data';
 import { CONCERN_MAP, SKIN_TYPE_LABEL } from '@/data/concerns';
 import { TUTORIALS } from '@/data/tutorials';
 import { analyzeRoutine } from '@/engine/compatibility';
@@ -12,17 +12,19 @@ import { CategoryBadges } from '@/components/ingredients/IngredientCard';
 import { VERDICT_META } from '@/components/board/BoardOverlay';
 import { TutorialPreview } from '@/components/tutorial/TutorialOverlay';
 import { useAppStore } from '@/store/useAppStore';
+import { useCatalog } from '@/store/catalog';
 
 function RoutineSummary({ type }: { type: RoutineType }) {
   const routines = useAppStore((s) => s.routines);
   const skinType = useAppStore((s) => s.profile?.skinType ?? null);
   const navigate = useAppStore((s) => s.navigate);
   const setActiveRoutine = useAppStore((s) => s.setActiveRoutine);
+  const catalog = useCatalog();
   const ids = useMemo(
     () => routines.filter((r) => r.routineType === type).sort((a, b) => a.sortOrder - b.sortOrder).map((r) => r.productId),
     [routines, type],
   );
-  const result = useMemo(() => analyzeRoutine({ productIds: ids, routineType: type, skinType }, CATALOG), [ids, type, skinType]);
+  const result = useMemo(() => analyzeRoutine({ productIds: ids, routineType: type, skinType }, catalog), [ids, type, skinType, catalog]);
 
   return (
     <button
@@ -53,6 +55,7 @@ function RoutineSummary({ type }: { type: RoutineType }) {
 
 export function HomePage() {
   const profile = useAppStore((s) => s.profile);
+  const storage = useAppStore((s) => s.storage);
   const posts = useAppStore((s) => s.posts);
   const pushOverlay = useAppStore((s) => s.pushOverlay);
   const openIngredient = useAppStore((s) => s.openIngredient);
@@ -78,6 +81,17 @@ export function HomePage() {
           <button type="button" className="link-btn" onClick={() => pushOverlay({ type: 'profile-edit' })}>
             프로필 수정
           </button>
+        </div>
+      )}
+      <div className="row row--between mt-1">
+        <span className="tiny muted">
+          {storage.kind === 'supabase' ? '☁️ 서버(Supabase)에 저장 · 재방문 시 자동 복원' : '📱 이 기기(localStorage)에 저장 · 재방문 시 자동 복원'}
+        </span>
+      </div>
+      {storage.fallback && (
+        <div className="notice notice--warn mt-2">
+          서버에 연결하지 못해 이 기기에만 저장하고 있어요. 네트워크와 Supabase 설정(익명 로그인, 테이블)을 확인한 뒤 새로고침해주세요.
+          <div className="tiny mt-1">{storage.error}</div>
         </div>
       )}
 

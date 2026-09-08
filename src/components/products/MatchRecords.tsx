@@ -1,8 +1,9 @@
 import { useMemo } from 'react';
-import { CATALOG, getIngredient, getProduct } from '@/data';
+import { getIngredient } from '@/data';
 import { extractTriggers } from '@/engine/triggers';
 import { Chip } from '@/components/ui/Chip';
 import { useAppStore } from '@/store/useAppStore';
+import { findProduct, useCatalog } from '@/store/catalog';
 
 /** 내 피부 궁합 기록 — 잘 맞음 / 기피 목록과 의심 성분 안내 */
 export function MatchRecords() {
@@ -10,10 +11,11 @@ export function MatchRecords() {
   const removeMatch = useAppStore((s) => s.removeMatch);
   const openIngredient = useAppStore((s) => s.openIngredient);
   const showToast = useAppStore((s) => s.showToast);
+  const catalog = useCatalog();
 
   const good = matches.filter((m) => m.matchType === 'good');
   const avoided = matches.filter((m) => m.matchType === 'avoided');
-  const triggers = useMemo(() => extractTriggers(matches, CATALOG), [matches]);
+  const triggers = useMemo(() => extractTriggers(matches, catalog), [matches, catalog]);
 
   if (matches.length === 0) {
     return (
@@ -26,7 +28,7 @@ export function MatchRecords() {
 
   const chipList = (list: typeof matches, tone: 'good' | 'avoided') =>
     list.map((m) => {
-      const p = getProduct(m.productId);
+      const p = findProduct(m.productId);
       if (!p) return null;
       return (
         <Chip

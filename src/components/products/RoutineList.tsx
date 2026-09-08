@@ -1,8 +1,8 @@
-import { getProduct } from '@/data';
 import { usageDay } from '@/lib/date';
 import { Badge } from '@/components/ui/Chip';
 import { Icon } from '@/components/ui/Icon';
 import { useAppStore, useRoutine } from '@/store/useAppStore';
+import { findProduct } from '@/store/catalog';
 import { IngredientTags } from './ProductCard';
 
 export function RoutineList() {
@@ -24,7 +24,7 @@ export function RoutineList() {
   return (
     <ol className="routine-list" aria-label={`${activeRoutine === 'AM' ? '아침' : '저녁'} 루틴`}>
       {items.map((item, idx) => {
-        const product = getProduct(item.productId);
+        const product = findProduct(item.productId);
         if (!product) return null;
         const day = usageDay(item.startedAt);
         return (

@@ -1,4 +1,4 @@
-import type { BoardPost, Profile, ProductMatch, RoutineItem, SkinLog } from '@/types';
+import type { BoardPost, Product, Profile, ProductMatch, RoutineItem, SkinLog } from '@/types';
 
 /** 한 사용자의 저장 데이터 묶음 */
 export interface UserData {
@@ -6,9 +6,11 @@ export interface UserData {
   routines: RoutineItem[];
   logs: SkinLog[];
   matches: ProductMatch[];
+  /** 사용자가 직접 등록한 제품 (사진 등록 등) */
+  customProducts: Product[];
 }
 
-export const EMPTY_USER_DATA: UserData = { profile: null, routines: [], logs: [], matches: [] };
+export const EMPTY_USER_DATA: UserData = { profile: null, routines: [], logs: [], matches: [], customProducts: [] };
 
 /**
  * 저장소 추상화.
@@ -31,6 +33,9 @@ export interface Repository {
 
   upsertMatch(match: ProductMatch): Promise<void>;
   deleteMatch(id: string): Promise<void>;
+
+  upsertCustomProduct(product: Product): Promise<void>;
+  deleteCustomProduct(id: string): Promise<void>;
 
   /** 커뮤니티 게시글 — 다른 사용자에게도 공개되는 공유 데이터 */
   listPosts(): Promise<BoardPost[]>;

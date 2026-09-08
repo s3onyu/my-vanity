@@ -43,7 +43,7 @@ interface ProductIndexEntry {
   ingredientNames: string[];
 }
 
-const PRODUCT_INDEX: ProductIndexEntry[] = PRODUCTS.map((p) => ({
+const indexEntry = (p: Product): ProductIndexEntry => ({
   product: p,
   brand: norm(p.brand),
   name: norm(p.name),
@@ -52,17 +52,20 @@ const PRODUCT_INDEX: ProductIndexEntry[] = PRODUCTS.map((p) => ({
     const ing = CATALOG.ingredients.get(id);
     return ing ? [norm(ing.nameKo), norm(ing.nameInci)] : [];
   }),
-}));
+});
+
+const PRODUCT_INDEX: ProductIndexEntry[] = PRODUCTS.map(indexEntry);
 
 /**
  * 브랜드명/제품명/별칭/성분명 부분 일치 검색.
  * "헤라" 만 입력해도 헤라 제품 여러 개가 나온다. 결과는 일치 위치에 따라 정렬한다.
  */
-export function searchProducts(query: string, limit = 40): Product[] {
+export function searchProducts(query: string, limit = 40, extra: Product[] = []): Product[] {
   const q = norm(query);
   if (q.length < 1) return [];
   const scored: { p: Product; s: number }[] = [];
-  PRODUCT_INDEX.forEach((e) => {
+  const entries = extra.length ? [...extra.map(indexEntry), ...PRODUCT_INDEX] : PRODUCT_INDEX;
+  entries.forEach((e) => {
     let s = 0;
     if (e.brand === q) s = 100;
     else if (e.brand.startsWith(q)) s = 90;

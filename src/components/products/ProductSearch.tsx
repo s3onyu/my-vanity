@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { searchProducts } from '@/data';
+import { useAppStore } from '@/store/useAppStore';
 import { Icon } from '@/components/ui/Icon';
 import { ProductCard } from './ProductCard';
 
@@ -21,8 +22,9 @@ interface Props {
 
 export function ProductSearch({ onActiveChange }: Props) {
   const [raw, setRaw] = useState('');
+  const customProducts = useAppStore((s) => s.customProducts);
   const validation = useMemo(() => validateQuery(raw), [raw]);
-  const results = useMemo(() => (validation.ok ? searchProducts(validation.value) : []), [validation]);
+  const results = useMemo(() => (validation.ok ? searchProducts(validation.value, 40, customProducts) : []), [validation, customProducts]);
 
   const update = (v: string) => {
     setRaw(v.slice(0, MAX_QUERY + 5));

@@ -85,6 +85,10 @@ export interface Product {
   skinTypes: SkinType[];
   /** false = 데모/미검증 데이터 */
   verified: boolean;
+  /** 사용자가 직접 등록한 제품 (사진 등록 등) */
+  custom?: boolean;
+  /** 사용자가 올린 제품 사진 (리사이즈된 data URL) */
+  imageUrl?: string | null;
 }
 
 export type InteractionSeverity = 'good' | 'neutral' | 'caution' | 'high_caution';
@@ -124,6 +128,11 @@ export interface SkinLog {
   id: string;
   /** YYYY-MM-DD */
   date: string;
+  /** 아침에 쓴 제품 id */
+  amProducts: string[];
+  /** 저녁에 쓴 제품 id */
+  pmProducts: string[];
+  /** 아침+저녁 합집합 (분석용, 저장 시 자동 계산) */
   products: string[];
   comfort: number; // 1~5
   dryness: number; // 1~5
