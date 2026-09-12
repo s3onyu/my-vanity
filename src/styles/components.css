@@ -428,3 +428,13 @@
   color: var(--paper);
   border: 2px solid var(--card);
 }
+
+.review-link {
+  align-self: flex-start;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--slate);
+  padding: 4px 9px;
+  border-radius: 8px;
+  background: var(--bone);
+}

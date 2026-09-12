@@ -21,7 +21,7 @@ interface Errors {
 }
 
 /** 글쓰기: 고민 → 제품(선택) → 총평 → 제목 → 본문 → 사진(선택) → 닉네임 */
-export function PostFormOverlay() {
+export function PostFormOverlay({ initialProductName }: { initialProductName?: string } = {}) {
   const popOverlay = useAppStore((s) => s.popOverlay);
   const createPost = useAppStore((s) => s.createPost);
   const setNickname = useAppStore((s) => s.setNickname);
@@ -30,7 +30,7 @@ export function PostFormOverlay() {
 
   const [concern, setConcern] = useState<ConcernId | null>(null);
   const [productQuery, setProductQuery] = useState('');
-  const [productName, setProductName] = useState<string | null>(null);
+  const [productName, setProductName] = useState<string | null>(initialProductName ?? null);
   const [verdict, setVerdict] = useState<Verdict | null>(null);
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');

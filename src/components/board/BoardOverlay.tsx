@@ -13,6 +13,42 @@ export const VERDICT_META: Record<Verdict, { label: string; color: 'mint' | 'but
   bad: { label: '별로였어요', color: 'rose', icon: '😞' },
 };
 
+const norm = (s: string) => s.toLowerCase().replace(/\s+/g, '');
+const tokens = (s: string) =>
+  s
+    .toLowerCase()
+    .split(/[^0-9a-z가-힣]+/)
+    .filter((t) => t.length >= 2);
+
+/**
+ * 게시글이 검색어와 맞는지 — 제품명은 낱말 단위로 느슨하게(60% 이상 일치), 제목·본문은 통째로 포함될 때.
+ * "1025 독도 토너"로 검색해도 "독도 토너 후기"가 잡히도록.
+ */
+export function postMatchesQuery(post: BoardPost, query: string): boolean {
+  const q = norm(query);
+  if (!q) return true;
+  const name = norm(post.productName ?? '');
+  if (name.includes(q) || norm(post.title).includes(q) || norm(post.body).includes(q)) return true;
+  const qs = tokens(query);
+  if (!qs.length) return false;
+  const hay = `${name} ${norm(post.title)}`;
+  const hits = qs.filter((t) => hay.includes(t)).length;
+  return hits >= Math.max(1, Math.ceil(qs.length * 0.6));
+}
+
+/** 제품 이름으로 후기 개수 세기 (제품 카드의 "후기 N" 버튼용) — 제품명 필드 기준 */
+export function countPostsForProduct(posts: BoardPost[], productName: string): number {
+  const qs = tokens(productName);
+  if (!qs.length) return 0;
+  return posts.filter((p) => {
+    const name = norm(p.productName ?? '');
+    if (!name) return false;
+    if (name.includes(norm(productName))) return true;
+    const hits = qs.filter((t) => name.includes(t)).length;
+    return hits >= Math.max(1, Math.ceil(qs.length * 0.6));
+  }).length;
+}
+
 export function PostCard({ post, onOpen }: { post: BoardPost; onOpen: () => void }) {
   const likePost = useAppStore((s) => s.likePost);
   const meta = CONCERN_MAP[post.concernCategory];
@@ -45,25 +81,43 @@ export function PostCard({ post, onOpen }: { post: BoardPost; onOpen: () => void
   );
 }
 
-/** 커뮤니티 게시판 — 다른 사람들의 화장대 */
-export function BoardOverlay() {
+/** 커뮤니티 게시판 — 다른 사람들의 화장대. 제품명·제목·본문으로 검색해 궁금한 제품 후기를 찾는다. */
+export function BoardOverlay({ initialQuery = '' }: { initialQuery?: string }) {
   const posts = useAppStore((s) => s.posts);
   const popOverlay = useAppStore((s) => s.popOverlay);
   const pushOverlay = useAppStore((s) => s.pushOverlay);
   const [filter, setFilter] = useState<ConcernId | 'all'>('all');
-  const list = useMemo(() => (filter === 'all' ? posts : posts.filter((p) => p.concernCategory === filter)), [posts, filter]);
+  const [query, setQuery] = useState(initialQuery);
+  const list = useMemo(
+    () => posts.filter((p) => (filter === 'all' || p.concernCategory === filter) && postMatchesQuery(p, query)),
+    [posts, filter, query],
+  );
+  const trimmed = query.trim();
 
   return (
     <Overlay
       title="다른 사람들의 화장대"
       onClose={popOverlay}
       right={
-        <button type="button" className="btn btn--sm" onClick={() => pushOverlay({ type: 'post-form' })}>
+        <button type="button" className="btn btn--sm" onClick={() => pushOverlay({ type: 'post-form', productName: trimmed || undefined })}>
           <Icon name="edit" size={14} /> 글쓰기
         </button>
       }
     >
       <p className="small muted mb-2">피부 고민별로 다른 사용자의 제품 후기를 나눠요. 개인 후기이며 효과를 보장하지 않아요.</p>
+      <div className="search mb-2">
+        <span className="search__icon">
+          <Icon name="search" size={16} />
+        </span>
+        <input
+          className="input"
+          type="search"
+          placeholder="궁금한 제품 이름으로 후기 찾기 (예: 독도 토너)"
+          value={query}
+          onChange={(e) => setQuery(e.target.value.slice(0, 60))}
+          aria-label="후기 검색"
+        />
+      </div>
       <div className="chip-scroll" role="tablist" aria-label="고민 카테고리">
         <Chip active={filter === 'all'} onClick={() => setFilter('all')}>
           전체
@@ -74,9 +128,25 @@ export function BoardOverlay() {
           </Chip>
         ))}
       </div>
+      {trimmed && (
+        <div className="search-meta">
+          <span>
+            “{trimmed}” 후기 {list.length}건
+          </span>
+          <button type="button" className="link-btn" onClick={() => setQuery('')}>
+            지우기
+          </button>
+        </div>
+      )}
       {list.length === 0 ? (
         <div className="empty mt-2">
-          <strong>아직 글이 없어요</strong>첫 후기를 남겨보세요.
+          <strong>{trimmed ? `“${trimmed}” 후기가 아직 없어요` : '아직 글이 없어요'}</strong>
+          {trimmed ? '이 제품을 써보셨다면 첫 후기를 남겨주세요. 다른 사람에게 큰 도움이 돼요.' : '첫 후기를 남겨보세요.'}
+          <div className="mt-2">
+            <button type="button" className="btn btn--sm" onClick={() => pushOverlay({ type: 'post-form', productName: trimmed || undefined })}>
+              {trimmed ? '이 제품 첫 후기 쓰기' : '글쓰기'}
+            </button>
+          </div>
         </div>
       ) : (
         <div className="stack mt-2">
@@ -93,6 +163,7 @@ export function BoardOverlay() {
 export function PostDetailOverlay({ id }: { id: string }) {
   const post = useAppStore((s) => s.posts.find((p) => p.id === id));
   const popOverlay = useAppStore((s) => s.popOverlay);
+  const pushOverlay = useAppStore((s) => s.pushOverlay);
   const likePost = useAppStore((s) => s.likePost);
   if (!post) {
     return (
@@ -120,8 +191,20 @@ export function PostDetailOverlay({ id }: { id: string }) {
         {post.authorNickname} · {relativeTime(post.createdAt)}
       </div>
       {post.productName && (
-        <div className="notice mt-2">
-          🧴 사용 제품: <strong>{post.productName}</strong>
+        <div className="notice mt-2 row row--between">
+          <span>
+            🧴 사용 제품: <strong>{post.productName}</strong>
+          </span>
+          <button
+            type="button"
+            className="link-btn"
+            onClick={() => {
+              popOverlay();
+              pushOverlay({ type: 'board', query: post.productName ?? '' });
+            }}
+          >
+            이 제품 후기 더 보기
+          </button>
         </div>
       )}
       {post.imageUrl && <img className="post-detail__img mt-2" src={post.imageUrl} alt="첨부 사진" />}

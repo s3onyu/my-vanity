@@ -4,6 +4,7 @@ import { getIngredient } from '@/data';
 import { Badge } from '@/components/ui/Chip';
 import { Icon } from '@/components/ui/Icon';
 import { useAppStore, selectMatchOf } from '@/store/useAppStore';
+import { countPostsForProduct } from '@/components/board/BoardOverlay';
 import { ProductThumb } from './ProductThumb';
 
 interface IngredientTagsProps {
@@ -47,6 +48,8 @@ export function ProductCard({ product, showMatch = true, action, footer }: Produ
   const activeRoutine = useAppStore((s) => s.activeRoutine);
   const showToast = useAppStore((s) => s.showToast);
   const removeCustomProduct = useAppStore((s) => s.removeCustomProduct);
+  const pushOverlay = useAppStore((s) => s.pushOverlay);
+  const reviewCount = useAppStore((s) => countPostsForProduct(s.posts, product.name));
 
   const onAdd = async () => {
     const r = await addToRoutine(product.id);
@@ -88,6 +91,9 @@ export function ProductCard({ product, showMatch = true, action, footer }: Produ
         )}
       </div>
       <IngredientTags ids={product.keyIngredients} />
+      <button type="button" className="review-link" onClick={() => pushOverlay({ type: 'board', query: product.name })}>
+        💬 {reviewCount > 0 ? `다른 사람 후기 ${reviewCount}건 보기` : '아직 후기가 없어요 · 첫 후기 쓰기'}
+      </button>
       <div className="product-card__actions">
         {showMatch && (
           <>
