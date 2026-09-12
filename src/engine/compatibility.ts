@@ -4,10 +4,15 @@ import { josa } from '@/lib/korean';
 import { type Catalog, findInteraction, ingredientName } from './catalog';
 import {
   ACTIVE_WEIGHTS,
+  AM_NO_SUNSCREEN_PENALTY,
+  AM_NO_SUNSCREEN_WITH_ACTIVES_PENALTY,
   BARRIER_SUPPORT,
+  CATEGORY_STEP,
   EXFOLIATION_FAMILY,
   FAMILY_LABEL,
   LAYERING_PENALTY,
+  ORDER_PENALTY_MAX,
+  ORDER_PENALTY_PER_PAIR,
   SCORE_BASE,
   SCORE_MAX,
   SCORE_MIN,
@@ -28,6 +33,7 @@ export type ReasonKey =
   | 'overexposure'
   | 'category-duplicate'
   | 'inactive-repeat'
+  | 'order'
   | 'positive-bonus';
 
 export type ReasonImpact = 'big' | 'medium' | 'small';
@@ -78,6 +84,10 @@ export interface CompatibilityResult {
     families: ExfoliationFamily[];
     hasSunscreen: boolean;
     hasMoisturizer: boolean;
+    /** 바르는 순서가 뒤집힌 쌍 (앞에 있는 제품, 뒤에 있는 제품) */
+    orderIssues: { first: string; second: string }[];
+    /** 권장 순서대로 정렬돼 있는지 */
+    inOrder: boolean;
   };
 }
 
@@ -119,6 +129,8 @@ export const EMPTY_RESULT: CompatibilityResult = {
     families: [],
     hasSunscreen: false,
     hasMoisturizer: false,
+    orderIssues: [],
+    inOrder: true,
   },
 };
 
@@ -339,16 +351,21 @@ export function analyzeRoutine(input: CompatibilityInput, catalog: Catalog): Com
       tip: '세라마이드나 판테놀이 든 크림을 루틴 마지막에 더해보세요.',
     });
   }
-  if (isAM && rawLoad > 0 && !hasSunscreen) {
+  if (isAM && !hasSunscreen) {
+    const withActives = rawLoad > 0;
     push({
       key: 'structural-gap',
       rule: 7,
       label: '아침 루틴에 선크림 없음',
-      delta: -10,
-      detail: '아침 루틴에 활성 성분이 있는데 자외선 차단 단계가 없어요. 레티노이드·산 계열은 광민감성을 높일 수 있어요.',
+      delta: -(withActives ? AM_NO_SUNSCREEN_WITH_ACTIVES_PENALTY : AM_NO_SUNSCREEN_PENALTY),
+      detail: withActives
+        ? '아침 루틴에 활성 성분이 있는데 자외선 차단 단계가 없어요. 레티노이드·산 계열은 광민감성을 높일 수 있어요.'
+        : '아침 루틴에 자외선 차단 단계가 없어요. 활성 성분이 없어도 아침 루틴의 마지막 단계로 가장 자주 권장돼요.',
       emoji: '☀️',
       title: '아침인데 선크림이 없어요',
-      why: '레티놀이나 산 성분을 쓴 날은 햇빛에 더 예민해져서 자외선 차단이 특히 중요해요.',
+      why: withActives
+        ? '레티놀이나 산 성분을 쓴 날은 햇빛에 더 예민해져서 자외선 차단이 특히 중요해요.'
+        : '자외선은 잡티·주름·건조의 가장 흔한 원인이라, 아침 루틴은 선크림으로 마무리하는 게 기본이에요.',
       tip: '아침 루틴 마지막 단계에 선크림을 넣어주세요.',
     });
   }
@@ -463,6 +480,39 @@ export function analyzeRoutine(input: CompatibilityInput, catalog: Catalog): Com
     });
   }
 
+  // ---- 13. 바르는 순서 (루틴에 담긴 순서 = 바르는 순서)
+  const orderIssues: { first: string; second: string }[] = [];
+  for (let i = 0; i < products.length; i += 1) {
+    for (let j = i + 1; j < products.length; j += 1) {
+      if (CATEGORY_STEP[products[i].category] > CATEGORY_STEP[products[j].category]) {
+        orderIssues.push({ first: products[i].name, second: products[j].name });
+      }
+    }
+  }
+  if (orderIssues.length > 0) {
+    const penalty = Math.min(ORDER_PENALTY_MAX, ORDER_PENALTY_PER_PAIR * orderIssues.length);
+    const firstIssue = orderIssues[0];
+    const firstProduct = products.find((p) => p.name === firstIssue.first)!;
+    const secondProduct = products.find((p) => p.name === firstIssue.second)!;
+    push({
+      key: 'order',
+      rule: 13,
+      label: '바르는 순서 뒤집힘',
+      delta: -penalty,
+      detail: `권장 순서(클렌징 → 토너 → 에센스 → 앰플·세럼 → 로션 → 크림 → 선크림 → 베이스)와 어긋난 쌍 ${orderIssues.length}건: ${orderIssues
+        .slice(0, 3)
+        .map((o) => `${o.first} → ${o.second}`)
+        .join(', ')}${orderIssues.length > 3 ? ' 등' : ''}.`,
+      emoji: '🔀',
+      title: `${josa(firstProduct.category, '을/를')} ${secondProduct.category}보다 먼저 발라요`,
+      why:
+        CATEGORY_STEP[firstProduct.category] >= 5 && CATEGORY_STEP[secondProduct.category] <= 3
+          ? `${firstProduct.category}처럼 유분이 있는 제품을 먼저 바르면 그 위에 얹는 ${secondProduct.category}가 잘 스며들지 않아요. 묽은 것부터 되직한 것 순서가 기본이에요.`
+          : `${secondProduct.category}가 ${firstProduct.category}보다 앞에 오는 게 보통이에요. 묽은 것부터 되직한 것, 마지막에 선크림 순서예요.`,
+      tip: '루틴 카드의 "순서 맞추기" 버튼을 누르거나 위/아래 화살표로 바꿔보세요.',
+    });
+  }
+
   // ---- 12. 긍정 구조 보너스 (조건을 실제로 충족했을 때만)
   const bonuses: { delta: number; text: string; plain: string }[] = [];
   if (barrierIds.length >= 3) bonuses.push({ delta: 4, text: `장벽 지지 성분 ${barrierIds.length}종 충분`, plain: `달래주는 성분이 ${barrierIds.length}종으로 넉넉해요` });
@@ -471,7 +521,10 @@ export function analyzeRoutine(input: CompatibilityInput, catalog: Catalog): Com
   if (families.length <= 1 && rawLoad > 0) bonuses.push({ delta: 3, text: '각질 관리 계열이 겹치지 않음', plain: '각질을 벗겨내는 성분이 겹치지 않아요' });
   else if (families.length === 0 && rawLoad === 0) bonuses.push({ delta: 2, text: '각질 관리 계열 없음', plain: '각질을 벗겨내는 성분이 없어 순해요' });
   if (fragranceExposure <= 1) bonuses.push({ delta: 3, text: '향료 노출 적음', plain: '향료가 거의 없어요' });
-  if (products.length <= 6) bonuses.push({ delta: 3, text: `제품 수 적정(${products.length}개)`, plain: `제품 수가 ${products.length}개로 적당해요` });
+  if (products.length >= 3 && products.length <= 6)
+    bonuses.push({ delta: 3, text: `제품 수 적정(${products.length}개)`, plain: `제품 수가 ${products.length}개로 적당해요` });
+  if (hasMoisturizer && orderIssues.length === 0) bonuses.push({ delta: 2, text: '보습 마무리 + 순서 정상', plain: '크림/로션으로 마무리하고 순서도 맞아요' });
+  const basicsInPlace = hasMoisturizer && orderIssues.length === 0 && (!isAM || hasSunscreen);
   if (bonuses.length > 0) {
     push({
       key: 'positive-bonus',
@@ -480,8 +533,8 @@ export function analyzeRoutine(input: CompatibilityInput, catalog: Catalog): Com
       delta: bonuses.reduce((s, b) => s + b.delta, 0),
       detail: bonuses.map((b) => `${b.text} +${b.delta}`).join(' · '),
       emoji: '👍',
-      title: '루틴의 기본기가 잘 잡혀 있어요',
-      why: bonuses.map((b) => b.plain).join(', ') + '.',
+      title: basicsInPlace ? '루틴의 기본기가 잘 잡혀 있어요' : '순한 성분 구성이에요',
+      why: bonuses.map((b) => b.plain).join(', ') + (basicsInPlace ? '.' : '. 다만 위에서 깎인 기본 단계(순서·선크림)는 챙겨주세요.'),
       tip: null,
     });
   }
@@ -514,6 +567,8 @@ export function analyzeRoutine(input: CompatibilityInput, catalog: Catalog): Com
       families,
       hasSunscreen,
       hasMoisturizer,
+      orderIssues,
+      inOrder: orderIssues.length === 0,
     },
   };
 }

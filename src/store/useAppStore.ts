@@ -14,7 +14,9 @@ import type {
 } from '@/types';
 import { todayISO } from '@/lib/date';
 import { uid } from '@/lib/id';
+import { CATEGORY_STEP } from '@/engine/constants';
 import { fallbackToLocal, repo } from './index';
+import { findProduct } from './catalog';
 
 export type Page = 'home' | 'products' | 'ingredients' | 'care' | 'diary';
 
@@ -71,6 +73,8 @@ interface AppState {
   addToRoutine: (productId: string, routineType?: RoutineType) => Promise<'added' | 'exists'>;
   removeFromRoutine: (itemId: string) => Promise<void>;
   moveRoutineItem: (itemId: string, dir: -1 | 1) => Promise<void>;
+  /** 권장 바르는 순서(카테고리 단계)대로 루틴을 정렬한다. 바뀐 게 없으면 false */
+  sortRoutineByStep: (routineType: RoutineType) => Promise<boolean>;
   saveLog: (log: Omit<SkinLog, 'id'> & { id?: string }) => Promise<void>;
   deleteLog: (id: string) => Promise<void>;
   toggleMatch: (productId: string, matchType: MatchType) => Promise<'set' | 'unset'>;
@@ -250,6 +254,23 @@ export const useAppStore = create<AppState>((set, get) => ({
     const others = routines.filter((r) => r.routineType !== target.routineType);
     set({ routines: [...others, ...updated].sort((a, b) => a.sortOrder - b.sortOrder) });
     await persist(repo.upsertRoutineItems(updated), get().showToast);
+  },
+
+  async sortRoutineByStep(routineType) {
+    const { routines } = get();
+    const list = routines.filter((r) => r.routineType === routineType).sort((a, b) => a.sortOrder - b.sortOrder);
+    const stepOf = (r: RoutineItem) => {
+      const p = findProduct(r.productId);
+      return p ? CATEGORY_STEP[p.category] : 99;
+    };
+    // 같은 단계끼리는 기존 순서 유지 (stable)
+    const sorted = list.map((r, i) => ({ r, i })).sort((a, b) => stepOf(a.r) - stepOf(b.r) || a.i - b.i).map((x) => x.r);
+    if (sorted.every((r, i) => r.id === list[i].id)) return false;
+    const updated = sorted.map((r, i) => ({ ...r, sortOrder: i }));
+    const others = routines.filter((r) => r.routineType !== routineType);
+    set({ routines: [...others, ...updated].sort((a, b) => a.sortOrder - b.sortOrder) });
+    await persist(repo.upsertRoutineItems(updated), get().showToast);
+    return true;
   },
 
   async saveLog(input) {

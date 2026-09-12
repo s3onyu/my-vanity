@@ -3,6 +3,7 @@ import { Badge } from '@/components/ui/Chip';
 import { Icon } from '@/components/ui/Icon';
 import { useAppStore, useRoutine } from '@/store/useAppStore';
 import { findProduct } from '@/store/catalog';
+import { CATEGORY_STEP } from '@/engine/constants';
 import { IngredientTags } from './ProductCard';
 import { ProductThumb } from './ProductThumb';
 
@@ -11,6 +12,7 @@ export function RoutineList() {
   const items = useRoutine(activeRoutine);
   const moveRoutineItem = useAppStore((s) => s.moveRoutineItem);
   const removeFromRoutine = useAppStore((s) => s.removeFromRoutine);
+  const sortRoutineByStep = useAppStore((s) => s.sortRoutineByStep);
   const showToast = useAppStore((s) => s.showToast);
 
   if (items.length === 0) {
@@ -22,7 +24,26 @@ export function RoutineList() {
     );
   }
 
+  const steps = items.map((it) => CATEGORY_STEP[findProduct(it.productId)?.category ?? '크림']);
+  const outOfOrder = steps.some((s, i) => i > 0 && s < steps[i - 1]);
+
   return (
+    <>
+      {outOfOrder && (
+        <div className="notice notice--warn mb-2 row" style={{ gap: 10 }}>
+          <span className="flex-1">🔀 바르는 순서가 권장 순서와 달라요. 묽은 것부터 되직한 것, 마지막에 선크림 순서예요.</span>
+          <button
+            type="button"
+            className="btn btn--sm"
+            onClick={async () => {
+              const changed = await sortRoutineByStep(activeRoutine);
+              showToast(changed ? '권장 순서로 정렬했어요' : '이미 권장 순서예요');
+            }}
+          >
+            순서 맞추기
+          </button>
+        </div>
+      )}
     <ol className="routine-list" aria-label={`${activeRoutine === 'AM' ? '아침' : '저녁'} 루틴`}>
       {items.map((item, idx) => {
         const product = findProduct(item.productId);
@@ -83,5 +104,6 @@ export function RoutineList() {
         );
       })}
     </ol>
+    </>
   );
 }

@@ -134,3 +134,34 @@ export const SCORE_MIN = 8;
 export const SCORE_MAX = 96;
 /** 기본 점수 — 여기서 감점·가점이 더해진다 */
 export const SCORE_BASE = 79;
+
+/**
+ * 바르는 순서 — 카테고리별 단계 번호 (작을수록 먼저).
+ * 클렌징 → 토너·패드·미스트 → 에센스 → 앰플·세럼 → 로션 → 크림·아이크림·오일·마스크 → 선크림 → 베이스
+ * 필링은 세안 직후·토너 전후에 쓰므로 토너와 같은 단계로 본다.
+ */
+export const CATEGORY_STEP: Record<ProductCategory, number> = {
+  클렌징: 0,
+  필링: 1,
+  토너: 1,
+  패드: 1,
+  미스트: 1,
+  에센스: 2,
+  앰플: 3,
+  세럼: 3,
+  로션: 4,
+  아이크림: 5,
+  크림: 5,
+  오일: 5,
+  마스크: 5,
+  선크림: 6,
+  베이스: 7,
+};
+
+/** 순서가 뒤집힌 쌍 하나당 감점, 최대 감점 */
+export const ORDER_PENALTY_PER_PAIR = 6;
+export const ORDER_PENALTY_MAX = 18;
+
+/** 아침 루틴에 선크림이 없을 때 — 활성 성분 유무에 따라 */
+export const AM_NO_SUNSCREEN_PENALTY = 6;
+export const AM_NO_SUNSCREEN_WITH_ACTIVES_PENALTY = 10;
