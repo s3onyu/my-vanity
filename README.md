@@ -55,6 +55,35 @@ VITE_SUPABASE_ANON_KEY=eyJ...
 
 6. `npm run dev` 를 다시 실행하면 홈 상단에 "☁️ 서버(Supabase)에 저장" 이 표시됩니다. 서버 연결에 실패하면 자동으로 localStorage 모드로 내려앉고 안내가 표시됩니다.
 
+## 폰에 설치하기 (Capacitor 네이티브 앱)
+
+`android/`, `ios/` 폴더가 네이티브 프로젝트입니다. 웹을 고친 뒤 `npm run cap:sync` 로 빌드 결과를 두 프로젝트에 복사합니다.
+
+- **Android (이 컴퓨터에서 가능):** Android Studio 설치 → `npm run cap:android` → 기기 연결 후 ▶ 실행. 스토어 출시는 Build → Generate Signed Bundle(AAB).
+- **iOS (Mac 필요):** Xcode 설치 → 이 폴더를 Mac 으로 옮기고 `npm install && npm run cap:ios` → Signing & Capabilities 에서 팀 선택 → 기기 실행 → Product → Archive 로 App Store Connect 업로드.
+- **출시 전 반드시:** `capacitor.config.ts` 의 `appId` 를 본인 도메인 기준으로 바꾸세요(예: `com.yourname.myvanity`). 아이콘·스플래시는 `node scripts/gen-icons.mjs && npx @capacitor/assets generate` 로 다시 만들 수 있습니다.
+- 카메라·사진 권한 문구는 `ios/App/App/Info.plist`(NSCameraUsageDescription 등)와 `android/app/src/main/AndroidManifest.xml` 에 들어 있습니다.
+- 설치형 앱에서 `/api` 함수를 쓰려면 `.env.local` 에 `VITE_API_BASE=https://<배포 도메인>` 을 넣고 빌드하세요.
+- PWA 로도 설치됩니다: 폰 브라우저에서 배포 주소를 열고 "홈 화면에 추가".
+
+## 사진 기능
+
+- **제품 사진 찾기·등록:** 설치형 앱에서는 기기 카메라 권한으로 바로 찍고, 웹에서는 브라우저 카메라를 씁니다. 글자 인식(OCR)은 기기 안에서 처리됩니다.
+- **피부 사진 기록:** 기록 탭에서 앱 안 카메라(얼굴 가이드 오버레이)로 찍어 아침/저녁 기록에 저장합니다. 홍조·광택·균일도는 기기 안에서 계산하는 **상대 비교용 참고 지표**이며 진단이 아닙니다. 타임라인의 "날짜별 사진 비교", 인사이트의 "피부 사진 추이"에서 변화를 봅니다.
+- 사진은 로컬 모드에서 IndexedDB 에, 서버 모드에서 Supabase(skin_logs.photo_url)에 저장되며 서버로 분석을 보내지 않습니다.
+
+## 실제 제품 사진 (출처 우선순위)
+
+1. 내가 찍어 붙인 사진 → 2. 다른 사용자가 공유한 사진(Supabase Storage `product-photos`) → 3. **네이버 쇼핑 검색 API** → 4. **Open Beauty Facts**(CC BY-SA) → 5. 카테고리 일러스트.
+
+- 네이버: [developers.naver.com](https://developers.naver.com) 에서 애플리케이션을 등록하고 "검색" API 를 추가한 뒤 `NAVER_CLIENT_ID`, `NAVER_CLIENT_SECRET` 을 `.env.local`(개발)과 Vercel 환경변수(배포)에 넣습니다. 키는 서버 함수 `api/product-image.ts` 에서만 읽습니다. 이용약관에 따라 결과를 DB 에 저장하지 않고 출처·링크를 표시합니다(기기 캐시 1일).
+- Open Beauty Facts 는 키 없이 동작하지만 국내 제품 커버리지가 낮고 분당 10회 제한이 있어 천천히 채워집니다.
+- 브랜드 공식 이미지는 허락 없이 쓰지 않습니다. 사용자가 공유한 사진은 제품 식별용으로만 표시합니다.
+
+## 커뮤니티 후기 검색
+
+게시판 상단 검색창에 제품 이름을 넣으면 제품명·제목·본문에서 후기를 찾습니다. 제품 카드의 "💬 후기 N건 보기"로 바로 들어가고, 없으면 그 제품으로 첫 후기 쓰기 폼이 열립니다.
+
 ## 제품 사진과 영상 튜토리얼
 
 - **제품 사진.** 시드 제품에는 카테고리별 일러스트(병·스포이드·자·튜브 등)를 브랜드 색으로 보여줍니다. 사진으로 제품을 찾아 담으면 그 사진이 자동으로 제품 사진이 되고, 카드의 썸네일을 눌러 직접 찍거나 앨범에서 골라 붙일 수도 있습니다. 사진은 내 저장소(`user_product_photos`)에만 저장됩니다.
@@ -85,7 +114,7 @@ VITE_SUPABASE_ANON_KEY=eyJ...
 | 6 | 서버·DB | Supabase 스키마·시드 SQL·클라이언트·환경변수 |
 | 7 | 서버·DB | localStorage → Supabase read/write 교체 (Repository 교체) |
 | 8 | 서버·DB | 재방문 시 저장 데이터 복원, 서버 실패 시 로컬 폴백, 저장 모드 표시 |
-| + | 추가 | 사진으로 제품 찾기(OCR) · 직접 등록 |
+| + | 추가 | 사진으로 제품 찾기(OCR) · 직접 등록 · 피부 사진 기록 · 실제 제품 사진 · 후기 검색 · Capacitor 네이티브 앱 |
 
 ## 폴더 구조
 
@@ -97,7 +126,10 @@ src/
   store/        Repository(local/supabase) · zustand 스토어 · 카탈로그 훅
   components/   레이아웃 · 온보딩 · 제품 · 성분 · 관리 · 게시판 · 튜토리얼(SVG 일러스트)
   pages/        홈 · 내 제품 · 성분 · 관리 · 기록
-  lib/          날짜 · id · 이미지 리사이즈 · Supabase 클라이언트 · OCR
+  lib/          날짜 · id · 이미지 · Supabase · OCR · 카메라(네이티브/웹) · 제품 사진 소스 · IndexedDB 사진 저장
+api/          Vercel 서버 함수 (네이버 쇼핑 이미지 프록시)
+android/ ios/ Capacitor 네이티브 프로젝트
+resources/    아이콘·스플래시 원본 (scripts/gen-icons.mjs 로 생성)
 supabase/       schema.sql, seed.sql
 scripts/        gen-seed-sql.ts
 ```

@@ -26,3 +26,16 @@ Thumbs.db
 
 # vercel
 .vercel/
+
+# capacitor native build outputs (프로젝트 파일은 커밋, 빌드 산출물만 제외)
+android/app/build/
+android/.gradle/
+android/build/
+android/local.properties
+android/.idea/
+ios/App/Pods/
+ios/App/build/
+ios/App/App.xcworkspace/xcuserdata/
+ios/App/App.xcodeproj/xcuserdata/
+ios/App/public/
+android/app/src/main/assets/public/

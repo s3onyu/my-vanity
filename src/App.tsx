@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useAppStore } from '@/store/useAppStore';
+import { setupNative } from '@/lib/native';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { Onboarding } from '@/components/onboarding/Onboarding';
 import { IngredientSheet } from '@/components/ingredients/IngredientSheet';
@@ -47,11 +48,11 @@ function Overlays() {
         </div>
       );
     case 'board':
-      return <BoardOverlay />;
+      return <BoardOverlay key={top.query ?? ''} initialQuery={top.query} />;
     case 'post':
       return <PostDetailOverlay id={top.id} />;
     case 'post-form':
-      return <PostFormOverlay />;
+      return <PostFormOverlay initialProductName={top.productName} />;
     case 'tutorial':
       return (
         <TutorialOverlay
@@ -88,6 +89,30 @@ export default function App() {
   useEffect(() => {
     void hydrate();
   }, [hydrate]);
+
+  // 설치형 앱: Android 뒤로가기 → 시트/오버레이 닫기 → 홈 → 종료
+  useEffect(
+    () =>
+      setupNative({
+        onBack: () => {
+          const s = useAppStore.getState();
+          if (s.ingredientSheet) {
+            s.closeIngredient();
+            return 'handled';
+          }
+          if (s.overlays.length) {
+            s.popOverlay();
+            return 'handled';
+          }
+          if (s.page !== 'home') {
+            s.navigate('home');
+            return 'handled';
+          }
+          return 'exit';
+        },
+      }),
+    [],
+  );
 
   if (!hydrated) {
     return (
