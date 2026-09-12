@@ -19,9 +19,9 @@ import { fallbackToLocal, repo } from './index';
 export type Page = 'home' | 'products' | 'ingredients' | 'care' | 'diary';
 
 export type Overlay =
-  | { type: 'board' }
+  | { type: 'board'; query?: string }
   | { type: 'post'; id: string }
-  | { type: 'post-form' }
+  | { type: 'post-form'; productName?: string }
   | { type: 'tutorial'; id?: string; mode?: 'illustration' | 'video'; categoryId?: string }
   | { type: 'profile-edit' }
   | { type: 'care'; concernId: ConcernId }
@@ -50,6 +50,10 @@ interface AppState {
   matches: ProductMatch[];
   customProducts: Product[];
   productPhotos: Record<string, string>;
+  /** 다른 사용자가 공유한 제품 사진 (서버 모드) */
+  sharedPhotos: Record<string, string>;
+  /** 내가 공유한 제품 id */
+  mySharedPhotoIds: string[];
   posts: BoardPost[];
 
   // UI
@@ -75,6 +79,8 @@ interface AppState {
   removeCustomProduct: (id: string) => Promise<void>;
   setProductPhoto: (productId: string, imageUrl: string) => Promise<void>;
   removeProductPhoto: (productId: string) => Promise<void>;
+  shareProductPhoto: (productId: string) => Promise<boolean>;
+  unshareProductPhoto: (productId: string) => Promise<void>;
   createPost: (input: Omit<BoardPost, 'id' | 'likes' | 'createdAt'>) => Promise<void>;
   likePost: (id: string) => Promise<void>;
 
@@ -130,6 +136,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   matches: [],
   customProducts: [],
   productPhotos: {},
+  sharedPhotos: {},
+  mySharedPhotoIds: [],
   posts: [],
 
   page: 'home',
@@ -167,6 +175,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       matches: data.matches,
       customProducts: data.customProducts.map((p) => ({ ...p, custom: true })),
       productPhotos: data.productPhotos ?? {},
+      sharedPhotos: data.sharedProductPhotos ?? {},
       posts,
     });
     if (error) get().showToast('서버에 연결하지 못해 이 기기에만 저장해요');
@@ -319,6 +328,26 @@ export const useAppStore = create<AppState>((set, get) => ({
     delete photos[productId];
     set({ productPhotos: photos });
     await persist(repo.deleteProductPhoto(productId), get().showToast);
+  },
+
+  async shareProductPhoto(productId) {
+    const url = get().productPhotos[productId];
+    if (!url) return false;
+    try {
+      const publicUrl = await repo.shareProductPhoto(productId, url);
+      set({ sharedPhotos: { ...get().sharedPhotos, [productId]: publicUrl }, mySharedPhotoIds: [...new Set([...get().mySharedPhotoIds, productId])] });
+      return true;
+    } catch (err) {
+      get().showToast((err as Error).message);
+      return false;
+    }
+  },
+
+  async unshareProductPhoto(productId) {
+    const shared = { ...get().sharedPhotos };
+    delete shared[productId];
+    set({ sharedPhotos: shared, mySharedPhotoIds: get().mySharedPhotoIds.filter((id) => id !== productId) });
+    await persist(repo.unshareProductPhoto(productId), get().showToast);
   },
 
   async createPost(input) {

@@ -215,3 +215,49 @@ alter table public.user_product_photos enable row level security;
 drop policy if exists "user_product_photos own" on public.user_product_photos;
 create policy "user_product_photos own" on public.user_product_photos for all
   using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- ---------------------------------------------------------------------------
+--  피부 사진 기록 (skin_logs 확장) — 사진과 기기에서 계산한 참고 지표
+-- ---------------------------------------------------------------------------
+
+alter table public.skin_logs add column if not exists photo_url text;
+alter table public.skin_logs add column if not exists skin_metrics jsonb;
+
+-- ---------------------------------------------------------------------------
+--  다른 사용자와 공유하는 제품 사진 — 모두 읽기, 본인 것만 쓰기
+--  파일은 Storage 버킷 product-photos(공개)에 <user_id>/<product_id>.jpg 로 올린다.
+-- ---------------------------------------------------------------------------
+
+create table if not exists public.shared_product_photos (
+  user_id    uuid not null references auth.users(id) on delete cascade,
+  product_id text not null,
+  image_url  text not null,
+  created_at timestamptz not null default now(),
+  primary key (user_id, product_id)
+);
+create index if not exists shared_product_photos_product_idx on public.shared_product_photos(product_id, created_at desc);
+
+alter table public.shared_product_photos enable row level security;
+drop policy if exists "shared photos read" on public.shared_product_photos;
+create policy "shared photos read" on public.shared_product_photos for select using (true);
+drop policy if exists "shared photos own write" on public.shared_product_photos;
+create policy "shared photos own write" on public.shared_product_photos for all
+  using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- Storage 버킷 + 정책 (Storage > Policies 에서 만들어도 된다)
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('product-photos', 'product-photos', true, 2097152, array['image/jpeg','image/png','image/webp'])
+on conflict (id) do nothing;
+
+drop policy if exists "product photos public read" on storage.objects;
+create policy "product photos public read" on storage.objects for select
+  using (bucket_id = 'product-photos');
+drop policy if exists "product photos own write" on storage.objects;
+create policy "product photos own write" on storage.objects for insert
+  with check (bucket_id = 'product-photos' and auth.uid()::text = (storage.foldername(name))[1]);
+drop policy if exists "product photos own update" on storage.objects;
+create policy "product photos own update" on storage.objects for update
+  using (bucket_id = 'product-photos' and auth.uid()::text = (storage.foldername(name))[1]);
+drop policy if exists "product photos own delete" on storage.objects;
+create policy "product photos own delete" on storage.objects for delete
+  using (bucket_id = 'product-photos' and auth.uid()::text = (storage.foldername(name))[1]);

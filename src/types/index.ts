@@ -138,6 +138,19 @@ export interface SkinLog {
   oiliness: number; // 1~5
   irritation: number; // 1~5
   memo: string;
+  /** 피부 사진 (리사이즈된 data URL 또는 저장소 URL) */
+  photoUrl?: string | null;
+  /** 사진에서 기기 안에서 계산한 참고 지표 */
+  skinMetrics?: SkinMetrics | null;
+}
+
+/** 피부 사진 참고 지표 — 상대 비교용, 진단 아님 */
+export interface SkinMetrics {
+  redness: number;
+  shine: number;
+  evenness: number;
+  brightness: number;
+  skinRatio: number;
 }
 
 export type MatchType = 'good' | 'avoided';

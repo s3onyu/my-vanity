@@ -9,6 +9,7 @@ import type {
   RoutineItem,
   RoutineType,
   SkinLog,
+  SkinMetrics,
   SkinType,
   Verdict,
 } from '@/types';
@@ -43,6 +44,8 @@ interface LogRow {
   oiliness: number;
   irritation: number;
   memo: string | null;
+  photo_url: string | null;
+  skin_metrics: SkinMetrics | null;
 }
 interface MatchRow {
   id: string;
@@ -97,6 +100,8 @@ const toLog = (r: LogRow): SkinLog => ({
   oiliness: r.oiliness,
   irritation: r.irritation,
   memo: r.memo ?? '',
+  photoUrl: r.photo_url,
+  skinMetrics: r.skin_metrics ?? null,
 });
 const toMatch = (r: MatchRow): ProductMatch => ({
   id: r.id,
@@ -134,9 +139,22 @@ function check(ctx: string, error: { message: string } | null) {
   if (error) throw new Error(`${ctx}: ${error.message}`);
 }
 
+/** data URL → Blob (Storage 업로드용) */
+function dataUrlToBlob(dataUrl: string): Blob {
+  const [head, body] = dataUrl.split(',');
+  const mime = /data:(.*?);/.exec(head)?.[1] ?? 'image/jpeg';
+  const bin = atob(body);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i += 1) bytes[i] = bin.charCodeAt(i);
+  return new Blob([bytes], { type: mime });
+}
+
+const PHOTO_BUCKET = 'product-photos';
+
 /**
  * Supabase 기반 저장소 (7차시).
  * localStorage 구현과 같은 Repository 인터페이스를 구현하며, 익명 로그인으로 얻은 user_id 로 행을 구분한다.
+ * 공유 제품 사진은 Storage 버킷(product-photos)에 올리고 공개 URL 만 테이블에 남긴다.
  */
 export function createSupabaseRepository(): Repository {
   let userId: string | null = null;
@@ -151,13 +169,14 @@ export function createSupabaseRepository(): Repository {
 
     async load(): Promise<UserData> {
       const id = await uid();
-      const [pr, rt, lg, mt, cp, ph] = await Promise.all([
+      const [pr, rt, lg, mt, cp, ph, sh] = await Promise.all([
         sb().from('profiles').select('*').eq('user_id', id).maybeSingle(),
         sb().from('user_routines').select('*').eq('user_id', id).order('sort_order'),
         sb().from('skin_logs').select('*').eq('user_id', id).order('date', { ascending: false }).order('period'),
         sb().from('user_product_matches').select('*').eq('user_id', id),
         sb().from('user_products').select('*').eq('user_id', id).order('created_at'),
         sb().from('user_product_photos').select('product_id,image_url').eq('user_id', id),
+        sb().from('shared_product_photos').select('product_id,image_url,created_at').order('created_at', { ascending: false }).limit(2000),
       ]);
       check('profiles', pr.error);
       check('user_routines', rt.error);
@@ -165,9 +184,15 @@ export function createSupabaseRepository(): Repository {
       check('user_product_matches', mt.error);
       check('user_products', cp.error);
       check('user_product_photos', ph.error);
+      check('shared_product_photos', sh.error);
       const productPhotos: Record<string, string> = {};
       ((ph.data ?? []) as { product_id: string; image_url: string }[]).forEach((row) => {
         productPhotos[row.product_id] = row.image_url;
+      });
+      const sharedProductPhotos: Record<string, string> = {};
+      ((sh.data ?? []) as { product_id: string; image_url: string }[]).forEach((row) => {
+        // 최신순 정렬이므로 처음 만난 것이 그 제품의 대표 사진
+        if (!sharedProductPhotos[row.product_id]) sharedProductPhotos[row.product_id] = row.image_url;
       });
       return {
         profile: pr.data ? toProfile(pr.data as ProfileRow) : null,
@@ -176,6 +201,7 @@ export function createSupabaseRepository(): Repository {
         matches: ((mt.data ?? []) as MatchRow[]).map(toMatch),
         customProducts: ((cp.data ?? []) as CustomProductRow[]).map(toCustomProduct),
         productPhotos,
+        sharedProductPhotos,
       };
     },
 
@@ -223,6 +249,8 @@ export function createSupabaseRepository(): Repository {
         oiliness: log.oiliness,
         irritation: log.irritation,
         memo: log.memo,
+        photo_url: log.photoUrl ?? null,
+        skin_metrics: log.skinMetrics ?? null,
       };
       // 같은 날짜·시간대의 기록은 하나만 — (user_id, date, period) 충돌 시 기존 행을 갱신한다
       const { error } = await sb().from('skin_logs').upsert(row, { onConflict: 'user_id,date,period' });
@@ -292,6 +320,27 @@ export function createSupabaseRepository(): Repository {
       const id = await uid();
       const { error } = await sb().from('user_product_photos').delete().eq('product_id', productId).eq('user_id', id);
       check('user_product_photos delete', error);
+    },
+
+    async shareProductPhoto(productId, imageUrl) {
+      const id = await uid();
+      const path = `${id}/${productId}.jpg`;
+      const { error: upErr } = await sb().storage.from(PHOTO_BUCKET).upload(path, dataUrlToBlob(imageUrl), { upsert: true, contentType: 'image/jpeg' });
+      check('storage upload', upErr);
+      const { data } = sb().storage.from(PHOTO_BUCKET).getPublicUrl(path);
+      const publicUrl = `${data.publicUrl}?v=${Date.now()}`;
+      const { error } = await sb()
+        .from('shared_product_photos')
+        .upsert({ user_id: id, product_id: productId, image_url: publicUrl, created_at: new Date().toISOString() }, { onConflict: 'user_id,product_id' });
+      check('shared_product_photos upsert', error);
+      return publicUrl;
+    },
+
+    async unshareProductPhoto(productId) {
+      const id = await uid();
+      await sb().storage.from(PHOTO_BUCKET).remove([`${id}/${productId}.jpg`]);
+      const { error } = await sb().from('shared_product_photos').delete().eq('product_id', productId).eq('user_id', id);
+      check('shared_product_photos delete', error);
     },
 
     async listPosts() {
