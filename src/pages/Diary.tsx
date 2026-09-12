@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { RoutineType, SkinLog } from '@/types';
+import type { RoutineType, SkinLog, SkinMetrics } from '@/types';
 import { analyzeLogs, METRIC_HIGHER_IS_BETTER, type Metric } from '@/engine/insights';
 import { formatKoDate, todayISO } from '@/lib/date';
 import { Badge, Chip } from '@/components/ui/Chip';
 import { Icon } from '@/components/ui/Icon';
 import { useAppStore } from '@/store/useAppStore';
 import { findProduct, useCatalog } from '@/store/catalog';
+import { LogPhotoThumb, SkinPhotoCompare, SkinPhotoSection, SkinPhotoTrend } from '@/components/diary/SkinPhoto';
 
 const METRICS: { key: Metric; label: string; low: string; high: string }[] = [
   { key: 'comfort', label: '편안함', low: '불편', high: '편안' },
@@ -66,9 +67,19 @@ function DiaryForm() {
   const [products, setProducts] = useState<string[]>([]);
   const [values, setValues] = useState<Record<Metric, number>>(DEFAULT_VALUES);
   const [memo, setMemo] = useState('');
+  const [photo, setPhoto] = useState<string | null>(null);
+  const [metrics, setMetrics] = useState<SkinMetrics | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const existing = logs.find((l) => l.date === date && l.period === period);
+  // 비교 기준: 이 기록보다 앞선 사진 기록 중 가장 최근 것
+  const previousWithPhoto = useMemo(
+    () =>
+      logs
+        .filter((l) => l.photoUrl && l.skinMetrics && (l.date < date || (l.date === date && l.period === 'AM' && period === 'PM')))
+        .sort((a, b) => b.date.localeCompare(a.date) || b.period.localeCompare(a.period))[0] ?? null,
+    [logs, date, period],
+  );
   const done: Record<RoutineType, boolean> = {
     AM: logs.some((l) => l.date === date && l.period === 'AM'),
     PM: logs.some((l) => l.date === date && l.period === 'PM'),
@@ -80,10 +91,14 @@ function DiaryForm() {
       setProducts(existing.products);
       setValues({ comfort: existing.comfort, dryness: existing.dryness, oiliness: existing.oiliness, irritation: existing.irritation });
       setMemo(existing.memo);
+      setPhoto(existing.photoUrl ?? null);
+      setMetrics(existing.skinMetrics ?? null);
     } else {
       setProducts(routineIds[period]);
       setValues(DEFAULT_VALUES);
       setMemo('');
+      setPhoto(null);
+      setMetrics(null);
     }
     setError(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -96,7 +111,7 @@ function DiaryForm() {
     if (date > today) return setError('미래 날짜는 기록할 수 없어요.');
     if (memo.length > MEMO_MAX) return setError(`메모는 ${MEMO_MAX}자 이하로 써주세요.`);
     setError(null);
-    await saveLog({ date, period, products, memo: memo.trim(), ...values });
+    await saveLog({ date, period, products, memo: memo.trim(), photoUrl: photo, skinMetrics: metrics, ...values });
     showToast(existing ? `${PERIOD_LABEL[period]} 기록을 업데이트했어요` : `${PERIOD_LABEL[period]} 기록을 남겼어요`);
     // 아침을 막 남겼고 저녁이 아직이면 저녁 탭으로 안내
     if (!existing && period === 'AM' && !done.PM && date === today) {
@@ -179,6 +194,16 @@ function DiaryForm() {
         </div>
       ))}
 
+      <SkinPhotoSection
+        photo={photo}
+        metrics={metrics}
+        previous={previousWithPhoto}
+        onChange={(p, m) => {
+          setPhoto(p);
+          setMetrics(m);
+        }}
+      />
+
       <div className="field mt-2">
         <label htmlFor="log-memo">메모</label>
         <textarea
@@ -243,6 +268,16 @@ function EntryBlock({ log }: { log: SkinLog }) {
           ))}
         </div>
       )}
+      {log.photoUrl && (
+        <div className="row mt-1" style={{ gap: 10 }}>
+          <LogPhotoThumb log={log} />
+          {log.skinMetrics && (
+            <span className="tiny muted">
+              홍조 {log.skinMetrics.redness} · 광택 {log.skinMetrics.shine} · 균일도 {log.skinMetrics.evenness}
+            </span>
+          )}
+        </div>
+      )}
       {log.memo && <p className="small mt-1">{log.memo}</p>}
     </div>
   );
@@ -251,6 +286,8 @@ function EntryBlock({ log }: { log: SkinLog }) {
 /** 타임라인 — 날짜별로 묶고 아침·저녁 기록을 나란히 */
 function Timeline() {
   const logs = useAppStore((s) => s.logs);
+  const [compare, setCompare] = useState(false);
+  const photoCount = logs.filter((l) => l.photoUrl).length;
   const days = useMemo(() => {
     const map = new Map<string, SkinLog[]>();
     logs.forEach((l) => map.set(l.date, [...(map.get(l.date) ?? []), l]));
@@ -269,6 +306,15 @@ function Timeline() {
 
   return (
     <ol className="stack">
+      {photoCount >= 1 && (
+        <li className="row row--between" style={{ listStyle: 'none' }}>
+          <span className="small muted">피부 사진 {photoCount}장</span>
+          <button type="button" className="btn btn--ghost btn--sm" onClick={() => setCompare(true)} disabled={photoCount < 2}>
+            📷 날짜별 사진 비교
+          </button>
+        </li>
+      )}
+      {compare && <SkinPhotoCompare onClose={() => setCompare(false)} />}
       {days.map((d) => (
         <li key={d.date} className="log-row">
           <div className="row row--between">
@@ -350,6 +396,8 @@ function Insights() {
         </div>
         <p className="tiny muted mt-1">막대는 그날 아침·저녁 기록의 평균이에요.</p>
       </div>
+
+      <SkinPhotoTrend />
 
       {ins.irritationNote && (
         <div className="card card--soft">

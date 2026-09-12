@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { Product } from '@/types';
 import { PRODUCTS, getIngredient } from '@/data';
 import { analyzePhotoText, type PhotoMatch } from '@/engine/photoMatch';
 import { resizeImage } from '@/lib/image';
+import { capturePhoto } from '@/lib/camera';
 import { ocrStatusKo, recognizeProductText, warmUpOcr, type OcrProgress } from '@/lib/ocr';
 import { Overlay } from '@/components/layout/Overlay';
 import { Badge, Chip } from '@/components/ui/Chip';
@@ -113,8 +114,6 @@ export function PhotoSearchOverlay({ registerOnly = false }: Props) {
   const [text, setText] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [showAllBrand, setShowAllBrand] = useState(false);
-  const cameraRef = useRef<HTMLInputElement>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!registerOnly) warmUpOcr();
@@ -123,10 +122,13 @@ export function PhotoSearchOverlay({ registerOnly = false }: Props) {
   const allProducts = useMemo<Product[]>(() => [...customProducts, ...PRODUCTS], [customProducts]);
   const analysis = useMemo(() => analyzePhotoText(text, allProducts), [text, allProducts]);
 
-  const onFile = async (file: File | undefined) => {
-    if (!file) return;
+  const pick = async (source: 'camera' | 'gallery') => {
     setError(null);
     try {
+      const dataUrl = await capturePhoto({ source, facing: 'environment', maxSide: 1600, quality: 0.92 });
+      if (!dataUrl) return;
+      const blob = await (await fetch(dataUrl)).blob();
+      const file = new File([blob], 'product.jpg', { type: blob.type || 'image/jpeg' });
       const [big, small] = await Promise.all([resizeImage(file, 1600, 0.92), resizeImage(file, 420, 0.8)]);
       setPreview(big);
       setThumb(small);
@@ -159,15 +161,13 @@ export function PhotoSearchOverlay({ registerOnly = false }: Props) {
           <p className="small muted">
             브랜드와 제품명이 보이는 앞면을 밝은 곳에서 정면으로 찍어주세요. 사진은 서버로 보내지 않고 이 기기 안에서 글자만 읽어내요.
           </p>
-          <button type="button" className="photo-pick" onClick={() => cameraRef.current?.click()}>
+          <button type="button" className="photo-pick-btn" onClick={() => pick('camera')}>
             <Icon name="camera" size={28} />
             <span>카메라로 찍기</span>
           </button>
-          <button type="button" className="btn btn--ghost btn--block" onClick={() => fileRef.current?.click()}>
+          <button type="button" className="btn btn--ghost btn--block" onClick={() => pick('gallery')}>
             앨범에서 사진 고르기
           </button>
-          <input ref={cameraRef} type="file" accept="image/*" capture="environment" hidden onChange={(e) => onFile(e.target.files?.[0])} />
-          <input ref={fileRef} type="file" accept="image/*" hidden onChange={(e) => onFile(e.target.files?.[0])} />
           {error && <div className="notice notice--danger">{error}</div>}
           <div className="divider" />
           <button type="button" className="link-btn" onClick={() => setStage('register')}>
