@@ -16,10 +16,25 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    // Play 스토어용 서명 — CI 에서 -PMYVANITY_STORE_FILE 등을 넘길 때만 쓰인다.
+    // 값이 없으면 서명 설정 없이 빌드하므로 로컬 개발과 디버그 빌드에는 영향이 없다.
+    signingConfigs {
+        release {
+            if (project.hasProperty('MYVANITY_STORE_FILE')) {
+                storeFile file(project.property('MYVANITY_STORE_FILE'))
+                storePassword project.property('MYVANITY_STORE_PASSWORD')
+                keyAlias project.property('MYVANITY_KEY_ALIAS')
+                keyPassword project.property('MYVANITY_KEY_PASSWORD')
+            }
+        }
+    }
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            if (project.hasProperty('MYVANITY_STORE_FILE')) {
+                signingConfig signingConfigs.release
+            }
         }
     }
 }

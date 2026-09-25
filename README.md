@@ -59,12 +59,38 @@ VITE_SUPABASE_ANON_KEY=eyJ...
 
 `android/`, `ios/` 폴더가 네이티브 프로젝트입니다. 웹을 고친 뒤 `npm run cap:sync` 로 빌드 결과를 두 프로젝트에 복사합니다.
 
-- **Android (이 컴퓨터에서 가능):** Android Studio 설치 → `npm run cap:android` → 기기 연결 후 ▶ 실행. 스토어 출시는 Build → Generate Signed Bundle(AAB).
-- **iOS (Mac 필요):** Xcode 설치 → 이 폴더를 Mac 으로 옮기고 `npm install && npm run cap:ios` → Signing & Capabilities 에서 팀 선택 → 기기 실행 → Product → Archive 로 App Store Connect 업로드.
-- **출시 전 반드시:** `capacitor.config.ts` 의 `appId` 를 본인 도메인 기준으로 바꾸세요(예: `com.yourname.myvanity`). 아이콘·스플래시는 `node scripts/gen-icons.mjs && npx @capacitor/assets generate` 로 다시 만들 수 있습니다.
-- 카메라·사진 권한 문구는 `ios/App/App/Info.plist`(NSCameraUsageDescription 등)와 `android/app/src/main/AndroidManifest.xml` 에 들어 있습니다.
+앱 식별자는 `com.s3onyu.myvanity`, 버전은 `1.0.0` 입니다. 방법은 셋이고, 위로 갈수록 간단합니다.
+
+### 1. 브라우저에서 설치 (돈도 프로그램도 필요 없음)
+
+배포 주소를 폰 브라우저로 열고 설치하면 아이콘이 생기고 전체 화면으로 열립니다. 카메라와 사진 기능도 그대로 됩니다.
+
+- **갤럭시(크롬):** 주소 열기 → 우측 상단 ⋮ → **앱 설치**
+- **갤럭시(삼성 인터넷):** ☰ → **현재 페이지 추가** → 홈 화면
+- **아이폰(사파리):** 공유 → **홈 화면에 추가**
+
+### 2. APK 로 설치 (안드로이드, 내 컴퓨터에 아무것도 설치 안 함)
+
+GitHub 의 리눅스 서버가 APK 를 만들어 줍니다.
+
+1. 저장소 **Actions → 안드로이드 APK 만들기 → Run workflow** 를 누릅니다.
+2. 5~10분 뒤 실행 화면 맨 아래 **Artifacts → my-vanity-android** 를 내려받습니다.
+3. 압축을 풀면 `app-debug.apk` 가 있습니다. 이 파일을 카카오톡 나에게 보내기나 USB 로 폰에 옮깁니다.
+4. 폰에서 파일을 눌러 설치합니다. 처음에는 "출처를 알 수 없는 앱" 허용을 물어보므로 허용해 주세요.
+
+내 컴퓨터에서 직접 만들려면 Android Studio 와 JDK 21 이 필요합니다. 설치돼 있다면 `npm run cap:android` 로 열어 실행할 수 있습니다.
+
+### 3. 스토어 출시
+
+- **Google Play:** 개발자 계정 1회 25달러. 서명 키스토어를 만들어 저장소 시크릿(`ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`)에 넣으면 같은 워크플로가 서명된 AAB 까지 만듭니다.
+- **App Store:** 아래 "Mac 없이 App Store 올리기" 참고. 연 99달러.
+
+### 참고
+
+- 웹을 고친 뒤 `npm run cap:sync` 로 빌드 결과를 네이티브 프로젝트에 복사합니다.
+- 아이콘·스플래시는 `node scripts/gen-icons.mjs && npx @capacitor/assets generate` 로 다시 만듭니다.
+- 카메라·사진 권한 문구는 `ios/App/App/Info.plist` 와 `android/app/src/main/AndroidManifest.xml` 에 있습니다.
 - 설치형 앱에서 `/api` 함수를 쓰려면 `.env.local` 에 `VITE_API_BASE=https://<배포 도메인>` 을 넣고 빌드하세요.
-- PWA 로도 설치됩니다: 폰 브라우저에서 배포 주소를 열고 "홈 화면에 추가".
 
 ## 사진 기능
 
