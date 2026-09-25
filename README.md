@@ -92,15 +92,43 @@ VITE_SUPABASE_ANON_KEY=eyJ...
 테이블: `profiles`, `user_routines`, `skin_logs`, `user_product_matches`, `user_products`(직접 등록 제품), `board_posts`(공개), 마스터 `products`, `ingredients`, `ingredient_interactions`.
 앱은 마스터 데이터를 번들에서 읽고(오프라인·속도), 사용자 데이터는 Supabase 에서 읽고 씁니다.
 
-## Vercel 배포 (5차시)
+## 배포 파이프라인 (Git → GitHub → Vercel)
 
-1. GitHub 에 저장소를 올립니다.
-   ```bash
-   git remote add origin https://github.com/<계정>/my-vanity.git
-   git push -u origin main
-   ```
-2. [vercel.com](https://vercel.com) → **Add New Project** → 저장소 선택. `vercel.json` 이 프레임워크(Vite)·빌드·SPA 리라이트를 정의합니다.
-3. (Supabase 사용 시) **Environment Variables** 에 `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` 를 추가하고 배포합니다.
+내 컴퓨터에서 커밋하면 GitHub 에 올라가고, Vercel 이 그 저장소를 지켜보다가 자동으로 배포합니다.
+
+```
+git commit  →  git push  →  GitHub(s3onyu/my-vanity)  →  Vercel 자동 빌드·배포
+```
+
+### 1. GitHub (연결 완료)
+
+원격은 `https://github.com/s3onyu/my-vanity.git` 이고 `main` 브랜치가 추적됩니다. 이후에는 아래 세 줄만 반복하면 됩니다.
+
+```bash
+git add -A
+git commit -m "무엇을 했는지"
+git push
+```
+
+### 2. Vercel 연결 (브라우저에서 한 번만)
+
+1. [vercel.com](https://vercel.com) 에 GitHub 계정으로 로그인합니다.
+2. **Add New → Project → Import** 에서 `my-vanity` 저장소를 고릅니다.
+3. 프레임워크·빌드·출력 폴더는 `vercel.json` 이 정의하므로 그대로 둡니다. `api/` 의 서버 함수도 자동 인식됩니다.
+4. **Environment Variables** 에 아래를 넣습니다. `VITE_` 로 시작하는 값은 브라우저에 포함되고, 나머지는 서버 함수에서만 읽습니다.
+
+   | 이름 | 필요성 | 없으면 |
+   |---|---|---|
+   | `VITE_SUPABASE_URL` | 서버 저장 | 이 기기에만 저장 |
+   | `VITE_SUPABASE_ANON_KEY` | 서버 저장 | 이 기기에만 저장 |
+   | `NAVER_CLIENT_ID` | 실제 상품 사진 | 일러스트로 표시 |
+   | `NAVER_CLIENT_SECRET` | 실제 상품 사진 | 일러스트로 표시 |
+   | `VITE_YOUTUBE_API_KEY` | 영상 실시간 검색 | 큐레이션 목록 |
+   | `VITE_API_BASE` | 설치형 앱에서만 | 같은 도메인 사용 |
+
+5. **Deploy** 를 누릅니다. 이후 `git push` 할 때마다 자동으로 다시 배포되고, 브랜치를 따로 올리면 미리보기 주소가 생깁니다.
+
+배포 주소를 아이폰 사파리에서 열고 공유 → **홈 화면에 추가** 를 누르면 App Store 없이도 앱처럼 설치돼 카메라까지 동작합니다.
 
 ## 개발 차시
 
