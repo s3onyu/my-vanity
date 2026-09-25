@@ -1,0 +1,28 @@
+name: 검사 (타입·테스트·빌드)
+
+# 푸시할 때마다 타입 검사, 단위 테스트, 프로덕션 빌드가 통과하는지 확인한다.
+# Vercel 배포와 별개로, 깨진 코드가 main 에 남지 않게 하는 안전장치다.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - name: 타입 검사
+        run: npm run typecheck
+      - name: 단위 테스트
+        run: npm test
+      - name: 프로덕션 빌드
+        run: npm run build

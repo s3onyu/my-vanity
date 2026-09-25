@@ -1,0 +1,151 @@
+name: iOS TestFlight 업로드
+
+# Mac 없이 App Store 에 올리기 위한 워크플로.
+# GitHub 의 macOS 러너가 Xcode 로 빌드·서명하고 TestFlight 에 올린다.
+#
+# 준비물 (저장소 Settings → Secrets and variables → Actions → New repository secret):
+#   APPSTORE_KEY_ID      App Store Connect → 사용자 및 액세스 → 통합 → 팀 키 → Key ID (10자)
+#   APPSTORE_ISSUER_ID   같은 화면 위쪽의 Issuer ID (UUID)
+#   APPSTORE_KEY_P8      내려받은 AuthKey_XXXX.p8 파일 전체 내용 (BEGIN/END 줄 포함해 그대로 붙여넣기)
+#   APPLE_TEAM_ID        developer.apple.com → Membership → Team ID (10자)
+#
+# 키를 만들 때 역할은 "App Manager" 이상이어야 업로드가 됩니다.
+# 첫 실행 전에 App Store Connect 에서 번들 ID(com.s3onyu.myvanity)로 앱을 미리 만들어 두세요.
+
+on:
+  workflow_dispatch:
+    inputs:
+      whatsnew:
+        description: 'TestFlight 테스터에게 보여줄 메모'
+        required: false
+        default: '새 빌드입니다.'
+  push:
+    tags:
+      - 'v*'
+
+concurrency:
+  group: ios-testflight
+  cancel-in-progress: false
+
+env:
+  XCODE_PROJECT: ios/App/App.xcodeproj
+  XCODE_SCHEME: App
+  BUNDLE_ID: com.s3onyu.myvanity
+
+jobs:
+  testflight:
+    runs-on: macos-15
+    timeout-minutes: 60
+
+    steps:
+      - name: 소스 받기
+        uses: actions/checkout@v4
+
+      - name: Node 준비
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: 의존성 설치
+        run: npm ci
+
+      - name: 웹 빌드와 네이티브 동기화
+        run: |
+          npm run build
+          npx cap sync ios
+
+      - name: App Store Connect API 키 배치
+        env:
+          APPSTORE_KEY_P8: ${{ secrets.APPSTORE_KEY_P8 }}
+          APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
+        run: |
+          if [ -z "$APPSTORE_KEY_P8" ]; then
+            echo "::error::APPSTORE_KEY_P8 시크릿이 없습니다. README 의 'Mac 없이 App Store 올리기' 를 참고하세요."
+            exit 1
+          fi
+          mkdir -p ~/private_keys
+          printf '%s\n' "$APPSTORE_KEY_P8" > ~/private_keys/AuthKey_${APPSTORE_KEY_ID}.p8
+          chmod 600 ~/private_keys/AuthKey_${APPSTORE_KEY_ID}.p8
+
+      - name: 빌드 번호를 실행 번호로 (TestFlight 는 같은 번호를 두 번 받지 않음)
+        run: |
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion ${GITHUB_RUN_NUMBER}" ios/App/App/Info.plist
+          echo "빌드 번호: ${GITHUB_RUN_NUMBER}"
+
+      - name: 아카이브 (서명은 Xcode 가 API 키로 자동 처리)
+        env:
+          APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
+          APPSTORE_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          xcodebuild archive \
+            -project "$XCODE_PROJECT" \
+            -scheme "$XCODE_SCHEME" \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$RUNNER_TEMP/App.xcarchive" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath ~/private_keys/AuthKey_${APPSTORE_KEY_ID}.p8 \
+            -authenticationKeyID "$APPSTORE_KEY_ID" \
+            -authenticationKeyIssuerID "$APPSTORE_ISSUER_ID" \
+            DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
+            CODE_SIGN_STYLE=Automatic \
+            | xcpretty || exit ${PIPESTATUS[0]}
+
+      - name: 내보내기 설정 만들기
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          cat > "$RUNNER_TEMP/ExportOptions.plist" <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>teamID</key><string>${APPLE_TEAM_ID}</string>
+            <key>destination</key><string>export</string>
+            <key>signingStyle</key><string>automatic</string>
+            <key>uploadSymbols</key><true/>
+          </dict>
+          </plist>
+          PLIST
+
+      - name: IPA 내보내기
+        env:
+          APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
+          APPSTORE_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
+        run: |
+          xcodebuild -exportArchive \
+            -archivePath "$RUNNER_TEMP/App.xcarchive" \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
+            -exportPath "$RUNNER_TEMP/export" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath ~/private_keys/AuthKey_${APPSTORE_KEY_ID}.p8 \
+            -authenticationKeyID "$APPSTORE_KEY_ID" \
+            -authenticationKeyIssuerID "$APPSTORE_ISSUER_ID"
+          ls -lh "$RUNNER_TEMP/export"
+
+      - name: TestFlight 에 업로드
+        env:
+          APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
+          APPSTORE_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
+        run: |
+          IPA=$(ls "$RUNNER_TEMP/export"/*.ipa | head -1)
+          echo "업로드: $IPA"
+          xcrun altool --upload-app \
+            --type ios \
+            --file "$IPA" \
+            --apiKey "$APPSTORE_KEY_ID" \
+            --apiIssuer "$APPSTORE_ISSUER_ID"
+
+      - name: 빌드 결과 보관 (실패해도 로그 확인용)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-build
+          path: |
+            ${{ runner.temp }}/export/*.ipa
+            ${{ runner.temp }}/App.xcarchive/Info.plist
+          if-no-files-found: ignore
+          retention-days: 7

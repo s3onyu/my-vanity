@@ -1,7 +1,7 @@
 {
   "name": "my-vanity",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "내 화장대 — 맞춤형 스킨케어 성분 분석 · 루틴 관리 앱 (모바일 웹)",
   "type": "module",
   "scripts": {
@@ -14,7 +14,9 @@
     "cap:sync": "npm run build && npx cap sync",
     "cap:android": "npm run cap:sync && npx cap open android",
     "cap:ios": "npm run cap:sync && npx cap open ios",
-    "cap:run:android": "npm run cap:sync && npx cap run android"
+    "cap:run:android": "npm run cap:sync && npx cap run android",
+    "legal:html": "tsx scripts/gen-legal-html.ts",
+    "prebuild": "tsx scripts/gen-legal-html.ts"
   },
   "dependencies": {
     "@capacitor/app": "^8.1.1",

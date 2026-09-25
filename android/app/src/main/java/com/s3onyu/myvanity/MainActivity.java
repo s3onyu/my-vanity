@@ -1,4 +1,4 @@
-package com.myvanity.app;
+package com.s3onyu.myvanity;
 
 import com.getcapacitor.BridgeActivity;
 

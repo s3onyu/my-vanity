@@ -2,6 +2,6 @@
 <resources>
     <string name="app_name">내 화장대</string>
     <string name="title_activity_main">내 화장대</string>
-    <string name="package_name">com.myvanity.app</string>
-    <string name="custom_url_scheme">com.myvanity.app</string>
+    <string name="package_name">com.s3onyu.myvanity</string>
+    <string name="custom_url_scheme">com.s3onyu.myvanity</string>
 </resources>

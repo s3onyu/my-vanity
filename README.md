@@ -130,6 +130,58 @@ git push
 
 배포 주소를 아이폰 사파리에서 열고 공유 → **홈 화면에 추가** 를 누르면 App Store 없이도 앱처럼 설치돼 카메라까지 동작합니다.
 
+## Mac 없이 App Store 올리기
+
+앱 식별자는 `com.s3onyu.myvanity`, 버전은 `1.0.0` 입니다. iOS 빌드는 Mac 에서만 되지만, GitHub 의 macOS 러너가 대신 빌드하므로 Windows 에서도 출시할 수 있습니다.
+
+### 1. 준비 (브라우저에서)
+
+1. [developer.apple.com](https://developer.apple.com) 에서 Apple Developer Program 에 가입합니다. 연 99달러이고 승인에 1~2일 걸립니다.
+2. [App Store Connect](https://appstoreconnect.apple.com) → **앱 → 새로운 앱** 에서 번들 ID `com.s3onyu.myvanity` 로 앱을 만듭니다.
+3. **사용자 및 액세스 → 통합 → App Store Connect API** 에서 **App Manager** 권한의 팀 키를 만들고 `.p8` 파일을 내려받습니다. 이 파일은 한 번만 받을 수 있습니다.
+
+### 2. GitHub 시크릿 등록
+
+저장소 **Settings → Secrets and variables → Actions** 에 네 개를 넣습니다.
+
+| 이름 | 어디서 |
+|---|---|
+| `APPSTORE_KEY_ID` | API 키 목록의 Key ID (10자) |
+| `APPSTORE_ISSUER_ID` | 같은 화면 위쪽 Issuer ID (UUID) |
+| `APPSTORE_KEY_P8` | 내려받은 `AuthKey_XXXX.p8` 파일 내용 전체 |
+| `APPLE_TEAM_ID` | developer.apple.com → Membership → Team ID |
+
+### 3. 빌드와 업로드
+
+저장소 **Actions → iOS TestFlight 업로드 → Run workflow** 를 누르면 빌드해서 TestFlight 에 올립니다. `v1.0.0` 같은 태그를 푸시해도 실행됩니다.
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+서명 인증서와 프로비저닝 프로파일은 Xcode 가 API 키로 자동 발급하므로 따로 만들 필요가 없습니다. 빌드 번호는 실행 번호로 자동 증가합니다.
+
+### 4. 심사 제출
+
+1. 아이폰에 TestFlight 앱을 설치해 올라온 빌드를 받아 확인합니다.
+2. 아이폰에서 스크린샷을 찍습니다. 6.9인치(아이폰 16 Pro Max 등) 기준 3장 이상이 필요합니다.
+3. App Store Connect 에 설명, 키워드, 카테고리(라이프스타일), 연령 등급(게시판이 있어 12+ 권장), 개인정보 처리방침 주소를 입력합니다.
+   - 처리방침 주소: `https://<배포주소>/legal/privacy.html`
+   - 이용약관: `https://<배포주소>/legal/terms.html`
+4. 심사 메모에 "성분 교육·루틴 관리 앱이며 의료 진단 기능이 없음, 커뮤니티에는 신고·차단·약관 동의·데이터 삭제 기능이 있음" 을 적습니다.
+5. 제출하면 보통 1~3일 안에 결과가 나옵니다.
+
+### 심사 대비로 이미 들어간 것
+
+- 게시글 신고(사유 6종)와 작성자 차단, 차단 목록 관리
+- 첫 글쓰기 전 이용약관·개인정보 처리방침·커뮤니티 규칙 동의, 버전이 바뀌면 재동의
+- 설정에서 내 데이터·계정 삭제 (2단계 확인)
+- 기본 게시글에 "예시 글" 표시, 실제 상품명 대신 유형 표기
+- 카메라·사진 접근 목적 문구 (`ios/App/App/Info.plist`)
+
+법적 문서 본문은 `src/data/legal.ts` 한 곳에서 관리하고, 빌드할 때 `public/legal/*.html` 로 자동 생성됩니다. 내용을 고치면 `TERMS_VERSION` 을 올려 사용자에게 다시 동의를 받습니다.
+
 ## 개발 차시
 
 | 차시 | 단계 | 목표 |
