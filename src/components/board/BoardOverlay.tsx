@@ -5,7 +5,7 @@ import { relativeTime } from '@/lib/date';
 import { Overlay } from '@/components/layout/Overlay';
 import { Badge, Chip } from '@/components/ui/Chip';
 import { Icon } from '@/components/ui/Icon';
-import { useAppStore } from '@/store/useAppStore';
+import { useAppStore, useVisiblePosts } from '@/store/useAppStore';
 
 export const VERDICT_META: Record<Verdict, { label: string; color: 'mint' | 'butter' | 'rose'; icon: string }> = {
   good: { label: '좋았어요', color: 'mint', icon: '😊' },
@@ -51,6 +51,7 @@ export function countPostsForProduct(posts: BoardPost[], productName: string): n
 
 export function PostCard({ post, onOpen }: { post: BoardPost; onOpen: () => void }) {
   const likePost = useAppStore((s) => s.likePost);
+  const pushOverlay = useAppStore((s) => s.pushOverlay);
   const meta = CONCERN_MAP[post.concernCategory];
   const v = VERDICT_META[post.verdict];
   return (
@@ -63,6 +64,7 @@ export function PostCard({ post, onOpen }: { post: BoardPost; onOpen: () => void
           <Badge color={v.color}>
             {v.icon} {v.label}
           </Badge>
+          {post.isDemo && <Badge color="lilac">예시 글</Badge>}
         </div>
         <div className="post-card__title">{post.title}</div>
         {post.productName && <div className="post-card__product">🧴 {post.productName}</div>}
@@ -73,9 +75,20 @@ export function PostCard({ post, onOpen }: { post: BoardPost; onOpen: () => void
         <span className="tiny muted">
           {post.authorNickname} · {relativeTime(post.createdAt)}
         </span>
-        <button type="button" className="like-btn" onClick={() => likePost(post.id)} aria-label="좋아요">
-          <Icon name="heart" size={14} /> {post.likes}
-        </button>
+        <div className="row" style={{ gap: 6 }}>
+          <button
+            type="button"
+            className="report-btn"
+            onClick={() => pushOverlay({ type: 'report', postId: post.id })}
+            aria-label="이 글 신고하기"
+            title="신고"
+          >
+            신고
+          </button>
+          <button type="button" className="like-btn" onClick={() => likePost(post.id)} aria-label="좋아요">
+            <Icon name="heart" size={14} /> {post.likes}
+          </button>
+        </div>
       </div>
     </article>
   );
@@ -83,7 +96,7 @@ export function PostCard({ post, onOpen }: { post: BoardPost; onOpen: () => void
 
 /** 커뮤니티 게시판 — 다른 사람들의 화장대. 제품명·제목·본문으로 검색해 궁금한 제품 후기를 찾는다. */
 export function BoardOverlay({ initialQuery = '' }: { initialQuery?: string }) {
-  const posts = useAppStore((s) => s.posts);
+  const posts = useVisiblePosts();
   const popOverlay = useAppStore((s) => s.popOverlay);
   const pushOverlay = useAppStore((s) => s.pushOverlay);
   const [filter, setFilter] = useState<ConcernId | 'all'>('all');
@@ -104,7 +117,9 @@ export function BoardOverlay({ initialQuery = '' }: { initialQuery?: string }) {
         </button>
       }
     >
-      <p className="small muted mb-2">피부 고민별로 다른 사용자의 제품 후기를 나눠요. 개인 후기이며 효과를 보장하지 않아요.</p>
+      <p className="small muted mb-2">
+        피부 고민별로 다른 사용자의 제품 후기를 나눠요. 개인 후기이며 효과를 보장하지 않아요. 규칙을 어긴 글은 신고해 주세요.
+      </p>
       <div className="search mb-2">
         <span className="search__icon">
           <Icon name="search" size={16} />
@@ -165,6 +180,10 @@ export function PostDetailOverlay({ id }: { id: string }) {
   const popOverlay = useAppStore((s) => s.popOverlay);
   const pushOverlay = useAppStore((s) => s.pushOverlay);
   const likePost = useAppStore((s) => s.likePost);
+  const blockAuthor = useAppStore((s) => s.blockAuthor);
+  const deleteMyPost = useAppStore((s) => s.deleteMyPost);
+  const showToast = useAppStore((s) => s.showToast);
+  const myNickname = useAppStore((s) => s.profile?.nickname ?? null);
   if (!post) {
     return (
       <Overlay title="게시글" onClose={popOverlay}>
@@ -183,6 +202,7 @@ export function PostDetailOverlay({ id }: { id: string }) {
         <Badge color={v.color}>
           {v.icon} {v.label}
         </Badge>
+        {post.isDemo && <Badge color="lilac">예시 글</Badge>}
       </div>
       <h2 className="h1 mt-2" style={{ fontSize: 24 }}>
         {post.title}
@@ -214,10 +234,49 @@ export function PostDetailOverlay({ id }: { id: string }) {
           <Icon name="heart" size={16} /> 좋아요 {post.likes}
         </button>
       </div>
+
       <div className="divider" />
+      <div className="row row--wrap" style={{ gap: 8 }}>
+        {!post.isDemo && myNickname && post.authorNickname === myNickname ? (
+          <button
+            type="button"
+            className="btn btn--danger btn--sm"
+            onClick={async () => {
+              if (window.confirm('내가 쓴 이 글을 지울까요? 되돌릴 수 없어요.')) {
+                await deleteMyPost(post.id);
+                showToast('글을 지웠어요');
+                popOverlay();
+              }
+            }}
+          >
+            <Icon name="trash" size={14} /> 내 글 삭제
+          </button>
+        ) : (
+          <>
+            <button type="button" className="btn btn--ghost btn--sm" onClick={() => pushOverlay({ type: 'report', postId: post.id })}>
+              🚩 신고
+            </button>
+            <button
+              type="button"
+              className="btn btn--ghost btn--sm"
+              onClick={async () => {
+                if (window.confirm(post.authorNickname + ' 님의 글을 앞으로 보지 않을까요? 설정에서 해제할 수 있어요.')) {
+                  await blockAuthor(post.authorNickname);
+                  popOverlay();
+                }
+              }}
+            >
+              🙈 이 사용자 차단
+            </button>
+          </>
+        )}
+      </div>
+
       <p className="fine-print">
-        이 글은 개인 후기이며 효과를 보장하지 않아요. 같은 제품이라도 반응은 사람마다 달라요. 심한 자극이나 트러블이 지속되면 전문의와
-        상담해주세요.
+        {post.isDemo
+          ? '이 글은 앱에 기본 포함된 예시 글이에요. 실제 사용자의 후기가 아니며 제품의 효과를 보장하지 않아요. '
+          : '이 글은 개인 후기이며 효과를 보장하지 않아요. 같은 제품이라도 반응은 사람마다 달라요. '}
+        심한 자극이나 트러블이 지속되면 전문의와 상담해주세요.
       </p>
     </Overlay>
   );

@@ -75,3 +75,8 @@ export async function listPhotos(prefix: string): Promise<Record<string, string>
     req.onerror = () => reject(req.error ?? new Error('IndexedDB 오류'));
   });
 }
+
+/** 저장된 사진을 모두 지운다 (계정·데이터 삭제) */
+export function clearPhotos(): Promise<void> {
+  return tx<undefined>('readwrite', (s) => s.clear()).then(() => undefined);
+}

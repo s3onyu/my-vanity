@@ -41,4 +41,9 @@ export const repo: Repository = {
   listPosts: () => repoRef.current.listPosts(),
   createPost: (post) => repoRef.current.createPost(post),
   likePost: (id) => repoRef.current.likePost(id),
+  deletePost: (id) => repoRef.current.deletePost(id),
+  reportPost: (postId, reason, detail) => repoRef.current.reportPost(postId, reason, detail),
+  blockAuthor: (nickname) => repoRef.current.blockAuthor(nickname),
+  unblockAuthor: (nickname) => repoRef.current.unblockAuthor(nickname),
+  deleteAllData: () => repoRef.current.deleteAllData(),
 };

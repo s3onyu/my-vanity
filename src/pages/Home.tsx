@@ -78,9 +78,14 @@ export function HomePage() {
             {' · '}
             {profile.concerns.map((c) => CONCERN_MAP[c].title).join(', ') || '고민 미설정'}
           </span>
-          <button type="button" className="link-btn" onClick={() => pushOverlay({ type: 'profile-edit' })}>
-            프로필 수정
-          </button>
+          <div className="row" style={{ gap: 10 }}>
+            <button type="button" className="link-btn" onClick={() => pushOverlay({ type: 'profile-edit' })}>
+              프로필 수정
+            </button>
+            <button type="button" className="link-btn" onClick={() => pushOverlay({ type: 'settings' })}>
+              설정
+            </button>
+          </div>
         </div>
       )}
       <div className="row row--between mt-1">

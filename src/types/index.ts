@@ -111,6 +111,10 @@ export interface Profile {
   concerns: ConcernId[];
   nickname: string | null;
   createdAt: string;
+  /** 커뮤니티 이용약관·개인정보 처리에 동의한 시각 (없으면 아직 동의 전) */
+  agreedAt?: string | null;
+  /** 동의한 약관 버전 — 약관이 바뀌면 다시 받는다 */
+  agreedVersion?: string | null;
 }
 
 export type RoutineType = 'AM' | 'PM';
@@ -164,6 +168,17 @@ export interface ProductMatch {
 
 export type Verdict = 'good' | 'soso' | 'bad';
 
+/** 게시글 신고 사유 */
+export type ReportReason = 'spam' | 'abuse' | 'misinfo' | 'privacy' | 'sexual' | 'other';
+
+export interface PostReport {
+  id: string;
+  postId: string;
+  reason: ReportReason;
+  detail: string;
+  createdAt: string;
+}
+
 export interface BoardPost {
   id: string;
   authorNickname: string;
@@ -175,6 +190,8 @@ export interface BoardPost {
   imageUrl: string | null;
   likes: number;
   createdAt: string;
+  /** 앱에 기본 포함된 예시 게시글 (실제 사용자 후기가 아님) */
+  isDemo?: boolean;
 }
 
 // ---------------------------------------------------------------------------

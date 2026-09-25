@@ -261,3 +261,49 @@ create policy "product photos own update" on storage.objects for update
 drop policy if exists "product photos own delete" on storage.objects;
 create policy "product photos own delete" on storage.objects for delete
   using (bucket_id = 'product-photos' and auth.uid()::text = (storage.foldername(name))[1]);
+
+-- ---------------------------------------------------------------------------
+--  커뮤니티 안전 장치 — 신고 · 차단 (App Store 심사 요건)
+-- ---------------------------------------------------------------------------
+
+-- 약관 동의 시점·버전 (profiles 에 추가)
+alter table public.profiles add column if not exists agreed_at timestamptz;
+alter table public.profiles add column if not exists agreed_version text;
+
+create table if not exists public.board_reports (
+  id         text primary key,
+  user_id    uuid not null references auth.users(id) on delete cascade,
+  post_id    text not null references public.board_posts(id) on delete cascade,
+  reason     text not null check (reason in ('spam','abuse','misinfo','privacy','sexual','other')),
+  detail     text not null default '',
+  created_at timestamptz not null default now(),
+  unique (user_id, post_id)
+);
+create index if not exists board_reports_post_idx on public.board_reports(post_id);
+
+create table if not exists public.user_blocks (
+  user_id          uuid not null references auth.users(id) on delete cascade,
+  blocked_nickname text not null,
+  created_at       timestamptz not null default now(),
+  primary key (user_id, blocked_nickname)
+);
+
+alter table public.board_reports enable row level security;
+alter table public.user_blocks enable row level security;
+
+-- 신고는 본인이 낸 것만 보이고, 운영자는 서비스 롤로 전체를 확인한다
+drop policy if exists "board_reports own" on public.board_reports;
+create policy "board_reports own" on public.board_reports for all
+  using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+drop policy if exists "user_blocks own" on public.user_blocks;
+create policy "user_blocks own" on public.user_blocks for all
+  using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- 신고가 일정 수 이상 쌓인 글을 운영자가 빠르게 보기 위한 뷰
+create or replace view public.board_reports_summary as
+  select p.id as post_id, p.title, p.author_nickname, count(r.id) as report_count, max(r.created_at) as last_reported_at
+  from public.board_posts p
+  join public.board_reports r on r.post_id = p.id
+  group by p.id, p.title, p.author_nickname
+  order by count(r.id) desc, max(r.created_at) desc;

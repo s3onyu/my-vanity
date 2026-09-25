@@ -1,5 +1,5 @@
-import type { BoardPost, Product, Profile, ProductMatch, RoutineItem, SkinLog } from '@/types';
-import { deletePhoto, getPhoto, isPhotoStoreAvailable, listPhotos, putPhoto } from '@/lib/photoStore';
+import type { BoardPost, PostReport, Product, Profile, ProductMatch, ReportReason, RoutineItem, SkinLog } from '@/types';
+import { clearPhotos, deletePhoto, getPhoto, isPhotoStoreAvailable, listPhotos, putPhoto } from '@/lib/photoStore';
 import { EMPTY_USER_DATA, type Repository, type UserData } from './repository';
 
 const USER_KEY = 'my-vanity:user:v1';
@@ -76,7 +76,14 @@ export function createLocalRepository(seedPosts: BoardPost[] = []): Repository {
           /* IDB 를 못 읽으면 JSON 값 그대로 */
         }
       }
-      return { ...user, productPhotos, logs, sharedProductPhotos: {} };
+      return {
+        ...user,
+        productPhotos,
+        logs,
+        sharedProductPhotos: {},
+        reports: user.reports ?? [],
+        blockedAuthors: user.blockedAuthors ?? [],
+      };
     },
 
     async saveProfile(profile: Profile) {
@@ -150,6 +157,39 @@ export function createLocalRepository(seedPosts: BoardPost[] = []): Repository {
 
     async listPosts() {
       return readPosts().sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    },
+
+    async deletePost(id: string) {
+      writePosts(readStoredPosts().filter((p) => p.id !== id));
+    },
+
+    async reportPost(postId: string, reason: ReportReason, detail: string) {
+      const report: PostReport = {
+        id: 'rp_' + Date.now() + '_' + postId,
+        postId,
+        reason,
+        detail,
+        createdAt: new Date().toISOString(),
+      };
+      const kept = readUser().reports.filter((r) => r.postId !== postId);
+      writeUser({ reports: [...kept, report] });
+      return report;
+    },
+
+    async blockAuthor(nickname: string) {
+      const cur = readUser().blockedAuthors;
+      if (!cur.includes(nickname)) writeUser({ blockedAuthors: [...cur, nickname] });
+    },
+
+    async unblockAuthor(nickname: string) {
+      writeUser({ blockedAuthors: readUser().blockedAuthors.filter((n) => n !== nickname) });
+    },
+
+    async deleteAllData() {
+      // 이 기기에 저장된 개인 데이터와 내가 쓴 글을 모두 지운다
+      localStorage.removeItem(USER_KEY);
+      localStorage.removeItem(POSTS_KEY);
+      if (idb) await clearPhotos().catch(() => undefined);
     },
 
     async createPost(post: BoardPost) {

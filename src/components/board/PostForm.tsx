@@ -6,7 +6,8 @@ import { resizeImage } from '@/lib/image';
 import { Overlay } from '@/components/layout/Overlay';
 import { Chip } from '@/components/ui/Chip';
 import { Icon } from '@/components/ui/Icon';
-import { useAppStore } from '@/store/useAppStore';
+import { useAppStore, useHasAgreed } from '@/store/useAppStore';
+import { ConsentGate } from './ConsentGate';
 import { VERDICT_META } from './BoardOverlay';
 
 const LIMITS = { title: [2, 60], body: [10, 1000], nickname: [2, 12] } as const;
@@ -27,6 +28,7 @@ export function PostFormOverlay({ initialProductName }: { initialProductName?: s
   const setNickname = useAppStore((s) => s.setNickname);
   const savedNickname = useAppStore((s) => s.profile?.nickname ?? '');
   const showToast = useAppStore((s) => s.showToast);
+  const hasAgreed = useHasAgreed();
 
   const [concern, setConcern] = useState<ConcernId | null>(null);
   const [productQuery, setProductQuery] = useState('');
@@ -84,6 +86,15 @@ export function PostFormOverlay({ initialProductName }: { initialProductName?: s
     showToast('게시글을 올렸어요');
     popOverlay();
   };
+
+  // 커뮤니티 이용약관에 동의하기 전에는 글쓰기 폼 대신 동의 화면을 보여준다
+  if (!hasAgreed) {
+    return (
+      <Overlay title="커뮤니티 이용 동의" onClose={popOverlay}>
+        <ConsentGate onAgreed={() => showToast('동의해 주셔서 고마워요. 이제 글을 쓸 수 있어요')} onCancel={popOverlay} />
+      </Overlay>
+    );
+  }
 
   return (
     <Overlay title="화장대 후기 쓰기" onClose={popOverlay}>

@@ -1,4 +1,4 @@
-import type { BoardPost, Product, Profile, ProductMatch, RoutineItem, SkinLog } from '@/types';
+import type { BoardPost, PostReport, Product, Profile, ProductMatch, ReportReason, RoutineItem, SkinLog } from '@/types';
 
 /** 한 사용자의 저장 데이터 묶음 */
 export interface UserData {
@@ -12,6 +12,10 @@ export interface UserData {
   productPhotos: Record<string, string>;
   /** 제품 id → 다른 사용자가 공유한 사진 URL (서버 모드에서만 채워짐) */
   sharedProductPhotos: Record<string, string>;
+  /** 내가 신고한 게시글 */
+  reports: PostReport[];
+  /** 내가 차단한 작성자 닉네임 */
+  blockedAuthors: string[];
 }
 
 export const EMPTY_USER_DATA: UserData = {
@@ -22,6 +26,8 @@ export const EMPTY_USER_DATA: UserData = {
   customProducts: [],
   productPhotos: {},
   sharedProductPhotos: {},
+  reports: [],
+  blockedAuthors: [],
 };
 
 /**
@@ -60,4 +66,14 @@ export interface Repository {
   listPosts(): Promise<BoardPost[]>;
   createPost(post: BoardPost): Promise<BoardPost>;
   likePost(id: string): Promise<number>;
+  /** 내가 쓴 글 삭제 (서버 모드는 본인 글만 지워진다) */
+  deletePost(id: string): Promise<void>;
+
+  /** 신고·차단 — 운영자가 확인할 수 있게 서버에도 남긴다 */
+  reportPost(postId: string, reason: ReportReason, detail: string): Promise<PostReport>;
+  blockAuthor(nickname: string): Promise<void>;
+  unblockAuthor(nickname: string): Promise<void>;
+
+  /** 내 데이터 전부 삭제 (계정 삭제) — 공개 게시글까지 지운다 */
+  deleteAllData(): Promise<void>;
 }

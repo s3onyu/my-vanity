@@ -3,6 +3,8 @@ import { create } from 'zustand';
 import type {
   BoardPost,
   ConcernId,
+  PostReport,
+  ReportReason,
   IngredientCategory,
   MatchType,
   Product,
@@ -15,6 +17,7 @@ import type {
 import { todayISO } from '@/lib/date';
 import { uid } from '@/lib/id';
 import { CATEGORY_STEP } from '@/engine/constants';
+import { TERMS_VERSION } from '@/data/legal';
 import { fallbackToLocal, repo } from './index';
 import { findProduct } from './catalog';
 
@@ -27,7 +30,10 @@ export type Overlay =
   | { type: 'tutorial'; id?: string; mode?: 'illustration' | 'video'; categoryId?: string }
   | { type: 'profile-edit' }
   | { type: 'care'; concernId: ConcernId }
-  | { type: 'photo-search'; registerOnly?: boolean };
+  | { type: 'photo-search'; registerOnly?: boolean }
+  | { type: 'settings' }
+  | { type: 'legal'; doc?: 'terms' | 'privacy' | 'rules' }
+  | { type: 'report'; postId: string };
 
 export interface IngredientFilter {
   query?: string;
@@ -57,6 +63,10 @@ interface AppState {
   /** 내가 공유한 제품 id */
   mySharedPhotoIds: string[];
   posts: BoardPost[];
+  /** 내가 신고한 게시글 (내 화면에서 숨김) */
+  reports: PostReport[];
+  /** 내가 차단한 작성자 닉네임 */
+  blockedAuthors: string[];
 
   // UI
   page: Page;
@@ -87,6 +97,17 @@ interface AppState {
   unshareProductPhoto: (productId: string) => Promise<void>;
   createPost: (input: Omit<BoardPost, 'id' | 'likes' | 'createdAt'>) => Promise<void>;
   likePost: (id: string) => Promise<void>;
+  /** 내가 쓴 글 삭제 */
+  deleteMyPost: (id: string) => Promise<void>;
+  /** 게시글 신고 — 서버(운영자)에 접수하고 내 화면에서는 즉시 숨긴다 */
+  reportPost: (postId: string, reason: ReportReason, detail: string) => Promise<void>;
+  /** 작성자 차단 — 그 사람의 글이 내 화면에서 모두 사라진다 */
+  blockAuthor: (nickname: string) => Promise<void>;
+  unblockAuthor: (nickname: string) => Promise<void>;
+  /** 커뮤니티 이용약관·개인정보 처리 동의 */
+  agreeToTerms: () => Promise<void>;
+  /** 내 모든 데이터 삭제 (계정 삭제) */
+  deleteAllMyData: () => Promise<void>;
 
   // UI 액션
   navigate: (page: Page) => void;
@@ -143,6 +164,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   sharedPhotos: {},
   mySharedPhotoIds: [],
   posts: [],
+  reports: [],
+  blockedAuthors: [],
 
   page: 'home',
   activeRoutine: new Date().getHours() < 15 ? 'AM' : 'PM',
@@ -181,6 +204,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       productPhotos: data.productPhotos ?? {},
       sharedPhotos: data.sharedProductPhotos ?? {},
       posts,
+      reports: data.reports ?? [],
+      blockedAuthors: data.blockedAuthors ?? [],
     });
     if (error) get().showToast('서버에 연결하지 못해 이 기기에만 저장해요');
 
@@ -394,6 +419,70 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
   },
 
+  async deleteMyPost(id) {
+    set({ posts: get().posts.filter((p) => p.id !== id) });
+    await persist(repo.deletePost(id), get().showToast);
+  },
+
+  async reportPost(postId, reason, detail) {
+    try {
+      const report = await repo.reportPost(postId, reason, detail);
+      set({ reports: [...get().reports.filter((r) => r.postId !== postId), report] });
+      get().showToast('신고를 접수했어요. 이 글은 내 화면에서 숨겨져요');
+    } catch (err) {
+      get().showToast('신고 접수에 실패했어요: ' + (err as Error).message);
+    }
+  },
+
+  async blockAuthor(nickname) {
+    if (!get().blockedAuthors.includes(nickname)) set({ blockedAuthors: [...get().blockedAuthors, nickname] });
+    await persist(repo.blockAuthor(nickname), get().showToast);
+    get().showToast(nickname + ' 님의 글을 더 이상 보지 않아요');
+  },
+
+  async unblockAuthor(nickname) {
+    set({ blockedAuthors: get().blockedAuthors.filter((n) => n !== nickname) });
+    await persist(repo.unblockAuthor(nickname), get().showToast);
+  },
+
+  async agreeToTerms() {
+    const prev = get().profile;
+    const profile: Profile = {
+      skinType: prev?.skinType ?? null,
+      concerns: prev?.concerns ?? [],
+      nickname: prev?.nickname ?? null,
+      createdAt: prev?.createdAt ?? new Date().toISOString(),
+      agreedAt: new Date().toISOString(),
+      agreedVersion: TERMS_VERSION,
+    };
+    set({ profile });
+    await persist(repo.saveProfile(profile), get().showToast);
+  },
+
+  async deleteAllMyData() {
+    await repo.deleteAllData();
+    set({
+      profile: null,
+      routines: [],
+      logs: [],
+      matches: [],
+      customProducts: [],
+      productPhotos: {},
+      sharedPhotos: {},
+      mySharedPhotoIds: [],
+      reports: [],
+      blockedAuthors: [],
+      overlays: [],
+      page: 'home',
+    });
+    // 남은 게시글 목록은 서버에서 다시 읽는다 (내 글은 지워진 상태)
+    try {
+      set({ posts: await repo.listPosts() });
+    } catch {
+      set({ posts: [] });
+    }
+  },
+
   // -------------------------------------------------------------------- ui
   navigate(page) {
     set({ page, overlays: [], ingredientSheet: null });
@@ -440,6 +529,23 @@ export function useRoutine(type: RoutineType): RoutineItem[] {
     () => routines.filter((r) => r.routineType === type).sort((a, b) => a.sortOrder - b.sortOrder),
     [routines, type],
   );
+}
+
+/** 신고했거나 차단한 작성자의 글을 뺀 게시글 목록 */
+export function useVisiblePosts(): BoardPost[] {
+  const posts = useAppStore((s) => s.posts);
+  const reports = useAppStore((s) => s.reports);
+  const blocked = useAppStore((s) => s.blockedAuthors);
+  return useMemo(() => {
+    const hidden = new Set(reports.map((r) => r.postId));
+    const blockedSet = new Set(blocked);
+    return posts.filter((p) => !hidden.has(p.id) && !blockedSet.has(p.authorNickname));
+  }, [posts, reports, blocked]);
+}
+
+/** 커뮤니티 이용약관에 (현재 버전으로) 동의했는지 */
+export function useHasAgreed(): boolean {
+  return useAppStore((s) => Boolean(s.profile?.agreedAt) && s.profile?.agreedVersion === TERMS_VERSION);
 }
 
 export const selectMatchOf = (productId: string) => (s: AppState) =>

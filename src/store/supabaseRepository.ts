@@ -2,10 +2,12 @@ import type {
   BoardPost,
   ConcernId,
   MatchType,
+  PostReport,
   Product,
   ProductCategory,
   Profile,
   ProductMatch,
+  ReportReason,
   RoutineItem,
   RoutineType,
   SkinLog,
@@ -26,6 +28,8 @@ interface ProfileRow {
   concerns: string[] | null;
   nickname: string | null;
   created_at: string;
+  agreed_at: string | null;
+  agreed_version: string | null;
 }
 interface RoutineRow {
   id: string;
@@ -82,6 +86,8 @@ const toProfile = (r: ProfileRow): Profile => ({
   concerns: (r.concerns ?? []) as ConcernId[],
   nickname: r.nickname,
   createdAt: r.created_at,
+  agreedAt: r.agreed_at ?? null,
+  agreedVersion: r.agreed_version ?? null,
 });
 const toRoutine = (r: RoutineRow): RoutineItem => ({
   id: r.id,
@@ -122,6 +128,22 @@ const toCustomProduct = (r: CustomProductRow): Product => ({
   custom: true,
   imageUrl: r.image_url,
 });
+interface ReportRow {
+  id: string;
+  post_id: string;
+  reason: string;
+  detail: string | null;
+  created_at: string;
+}
+
+const toReport = (r: ReportRow): PostReport => ({
+  id: r.id,
+  postId: r.post_id,
+  reason: r.reason as ReportReason,
+  detail: r.detail ?? '',
+  createdAt: r.created_at,
+});
+
 const toPost = (r: PostRow): BoardPost => ({
   id: r.id,
   authorNickname: r.author_nickname,
@@ -169,7 +191,7 @@ export function createSupabaseRepository(): Repository {
 
     async load(): Promise<UserData> {
       const id = await uid();
-      const [pr, rt, lg, mt, cp, ph, sh] = await Promise.all([
+      const [pr, rt, lg, mt, cp, ph, sh, rp, bl] = await Promise.all([
         sb().from('profiles').select('*').eq('user_id', id).maybeSingle(),
         sb().from('user_routines').select('*').eq('user_id', id).order('sort_order'),
         sb().from('skin_logs').select('*').eq('user_id', id).order('date', { ascending: false }).order('period'),
@@ -177,6 +199,8 @@ export function createSupabaseRepository(): Repository {
         sb().from('user_products').select('*').eq('user_id', id).order('created_at'),
         sb().from('user_product_photos').select('product_id,image_url').eq('user_id', id),
         sb().from('shared_product_photos').select('product_id,image_url,created_at').order('created_at', { ascending: false }).limit(2000),
+        sb().from('board_reports').select('*').eq('user_id', id),
+        sb().from('user_blocks').select('blocked_nickname').eq('user_id', id),
       ]);
       check('profiles', pr.error);
       check('user_routines', rt.error);
@@ -185,6 +209,8 @@ export function createSupabaseRepository(): Repository {
       check('user_products', cp.error);
       check('user_product_photos', ph.error);
       check('shared_product_photos', sh.error);
+      check('board_reports', rp.error);
+      check('user_blocks', bl.error);
       const productPhotos: Record<string, string> = {};
       ((ph.data ?? []) as { product_id: string; image_url: string }[]).forEach((row) => {
         productPhotos[row.product_id] = row.image_url;
@@ -202,6 +228,8 @@ export function createSupabaseRepository(): Repository {
         customProducts: ((cp.data ?? []) as CustomProductRow[]).map(toCustomProduct),
         productPhotos,
         sharedProductPhotos,
+        reports: ((rp.data ?? []) as ReportRow[]).map(toReport),
+        blockedAuthors: ((bl.data ?? []) as { blocked_nickname: string }[]).map((r) => r.blocked_nickname),
       };
     },
 
@@ -210,7 +238,15 @@ export function createSupabaseRepository(): Repository {
       const { error } = await sb()
         .from('profiles')
         .upsert(
-          { user_id: id, skin_type: profile.skinType, concerns: profile.concerns, nickname: profile.nickname, created_at: profile.createdAt },
+          {
+            user_id: id,
+            skin_type: profile.skinType,
+            concerns: profile.concerns,
+            nickname: profile.nickname,
+            created_at: profile.createdAt,
+            agreed_at: profile.agreedAt ?? null,
+            agreed_version: profile.agreedVersion ?? null,
+          },
           { onConflict: 'user_id' },
         );
       check('profiles upsert', error);
@@ -376,6 +412,64 @@ export function createSupabaseRepository(): Repository {
       const { data, error } = await sb().rpc('increment_post_likes', { post_id: postId });
       check('increment_post_likes', error);
       return typeof data === 'number' ? data : Number(data ?? 0);
+    },
+
+    async deletePost(postId) {
+      const id = await uid();
+      const { error } = await sb().from('board_posts').delete().eq('id', postId).eq('user_id', id);
+      check('board_posts delete', error);
+    },
+
+    async reportPost(postId, reason, detail) {
+      const id = await uid();
+      const report: PostReport = {
+        id: 'rp_' + Date.now() + '_' + postId,
+        postId,
+        reason,
+        detail,
+        createdAt: new Date().toISOString(),
+      };
+      const { error } = await sb()
+        .from('board_reports')
+        .upsert({ id: report.id, user_id: id, post_id: postId, reason, detail, created_at: report.createdAt }, { onConflict: 'user_id,post_id' });
+      check('board_reports insert', error);
+      return report;
+    },
+
+    async blockAuthor(nickname) {
+      const id = await uid();
+      const { error } = await sb()
+        .from('user_blocks')
+        .upsert({ user_id: id, blocked_nickname: nickname }, { onConflict: 'user_id,blocked_nickname' });
+      check('user_blocks insert', error);
+    },
+
+    async unblockAuthor(nickname) {
+      const id = await uid();
+      const { error } = await sb().from('user_blocks').delete().eq('user_id', id).eq('blocked_nickname', nickname);
+      check('user_blocks delete', error);
+    },
+
+    async deleteAllData() {
+      const id = await uid();
+      // 내가 올린 공유 사진·게시글까지 지운 뒤 로그아웃한다
+      const tables = [
+        'shared_product_photos',
+        'board_posts',
+        'board_reports',
+        'user_blocks',
+        'user_product_photos',
+        'user_products',
+        'user_product_matches',
+        'skin_logs',
+        'user_routines',
+        'profiles',
+      ];
+      for (const table of tables) {
+        const { error } = await sb().from(table).delete().eq('user_id', id);
+        check(table + ' delete', error);
+      }
+      await sb().auth.signOut();
     },
   };
 }
