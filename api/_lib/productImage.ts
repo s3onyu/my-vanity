@@ -60,43 +60,74 @@ interface KakaoDoc {
   doc_url?: string;
 }
 
-/** 쇼핑몰 상품컷일수록 높은 점수. 웹 어디서나 긁혀 오는 이미지 검색이라 상품 사진처럼 생긴 것만 고른다. */
+/** 상품컷이 올라오는 쇼핑몰·가격비교 사이트 */
+const SHOPPING_SITES = ['쇼핑하우', '11번가', 'G마켓', '지마켓', '옥션', '인터파크', '쿠팡', '올리브영', '네이버쇼핑', 'SSG', '롯데온', '위메프', '티몬', '무신사', '컬리'];
+
+/**
+ * 검색어 후보를 길이순으로 만든다.
+ * 다음 이미지 검색은 단어를 모두 만족하는 문서만 주기 때문에 이름을 통째로 넣으면 결과가 0이 된다.
+ * (실측: "아누아 어성초 77 토너" 1건 → "아누아 어성초 수딩" 30건, "구달 청귤 비타c" 0건 → "구달 청귤" 30건)
+ * 그래서 숫자·용량 토큰을 떼고 3단어 → 2단어 → 1단어 순으로 좁혀 가며, 먼저 걸리는 쪽을 쓴다.
+ */
+export function buildKakaoQueries(query: string): string[] {
+  const [brand, ...rest] = query.split(/\s+/).filter(Boolean);
+  if (!brand) return [];
+  const tokens = rest.filter((t) => !/^\d+(호|개입|ml|g|%)?$/i.test(t));
+  const candidates = [3, 2, 1].map((n) => [brand, ...tokens.slice(0, n)].join(' '));
+  return [...new Set(candidates)].filter((c) => c.length >= 2);
+}
+
+/**
+ * 상품 사진처럼 생긴 것만 고른다. 웹 전체를 긁는 이미지 검색이라
+ * 상세페이지 배너나 블로그 캡처가 섞여 들어온다.
+ * 썸네일은 kakaocdn 이 130x130 으로 다시 내주므로, 원본 서버가 핫링크를 막아도 안전하고
+ * 화면에 쓰는 크기(최대 64px)에도 충분하다.
+ */
 function scoreKakaoDoc(doc: KakaoDoc): number {
+  const thumb = doc.thumbnail_url;
+  if (!thumb || !thumb.startsWith('https://')) return -1; // 앱이 https 라 http 이미지는 막힌다
   const w = doc.width ?? 0;
   const h = doc.height ?? 0;
-  if (!doc.image_url || !doc.image_url.startsWith('https://')) return -1; // 앱이 https 라 http 이미지는 막힌다
-  if (w < 120 || h < 120 || w > 3000 || h > 3000) return -1;
+  if (w < 200 || h < 200) return -1; // 아이콘·버튼 조각
   const ratio = w / h;
-  if (ratio < 0.6 || ratio > 1.7) return -1; // 배너·상세페이지 긴 이미지 걸러내기
-  let score = 0;
-  if (doc.collection === 'shopping') score += 10; // 판매 페이지 상품컷
-  score += Math.max(0, 3 - Math.abs(1 - ratio) * 6); // 정사각형에 가까울수록
-  if (w >= 300 && h >= 300) score += 1;
+  if (ratio < 0.7 || ratio > 1.45) return -1; // 배너·세로로 긴 상세페이지
+  let score = 3 - Math.abs(1 - ratio) * 5; // 정사각형에 가까울수록
+  const site = doc.display_sitename ?? '';
+  if (doc.collection === 'shopping' || SHOPPING_SITES.some((s) => site.includes(s))) score += 10;
   return score;
 }
 
-export async function lookupKakaoImage(query: string, restKey: string): Promise<ProductImageHit | null> {
-  const url = `https://dapi.kakao.com/v2/search/image?query=${encodeURIComponent(query)}&size=30&sort=accuracy`;
-  const res = await fetch(url, { headers: { Authorization: `KakaoAK ${restKey}` } });
-  if (!res.ok) throw new Error(`kakao ${res.status}`);
-  const json = (await res.json()) as { documents?: KakaoDoc[] };
+function pickKakaoDoc(docs: KakaoDoc[]): KakaoDoc | null {
   let best: KakaoDoc | null = null;
   let bestScore = 0;
-  for (const doc of json.documents ?? []) {
+  for (const doc of docs) {
     const score = scoreKakaoDoc(doc);
     if (score > bestScore) {
       best = doc;
       bestScore = score;
     }
   }
-  if (!best) return null;
-  return {
-    image: best.thumbnail_url && best.thumbnail_url.startsWith('https://') ? best.thumbnail_url : best.image_url!,
-    link: best.doc_url ?? best.image_url!,
-    title: stripTags(best.display_sitename ?? query),
-    mall: best.display_sitename ?? '',
-    source: 'kakao',
-  };
+  return best;
+}
+
+export async function lookupKakaoImage(query: string, restKey: string): Promise<ProductImageHit | null> {
+  for (const q of buildKakaoQueries(query)) {
+    const url = `https://dapi.kakao.com/v2/search/image?query=${encodeURIComponent(q)}&size=30&sort=accuracy`;
+    const res = await fetch(url, { headers: { Authorization: `KakaoAK ${restKey}` } });
+    if (!res.ok) throw new Error(`kakao ${res.status}`); // 키 문제면 더 시도해도 같다
+    const json = (await res.json()) as { documents?: KakaoDoc[] };
+    const best = pickKakaoDoc(json.documents ?? []);
+    if (best) {
+      return {
+        image: best.thumbnail_url!,
+        link: best.doc_url ?? best.image_url!,
+        title: stripTags(best.display_sitename ?? q),
+        mall: best.display_sitename ?? '',
+        source: 'kakao',
+      };
+    }
+  }
+  return null;
 }
 
 // ---------------------------------------------------------------------------

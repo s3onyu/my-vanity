@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { handleProductImage, lookupKakaoImage } from './productImage';
+import { buildKakaoQueries, handleProductImage, lookupKakaoImage } from './productImage';
 
 const kakaoDoc = (over: Record<string, unknown>) => ({
   collection: 'blog',
@@ -21,6 +21,21 @@ function mockFetch(reply: (url: string) => { ok?: boolean; status?: number; json
 }
 
 afterEach(() => vi.unstubAllGlobals());
+
+describe('buildKakaoQueries', () => {
+  it('긴 이름부터 시도하되 점점 짧게 좁힌다', () => {
+    expect(buildKakaoQueries('아누아 어성초 수딩 토너 대용량')).toEqual(['아누아 어성초 수딩 토너', '아누아 어성초 수딩', '아누아 어성초']);
+  });
+
+  it('숫자·용량 토큰을 뺀다 — 넣으면 검색 결과가 거의 안 나온다', () => {
+    expect(buildKakaoQueries('아누아 어성초 77 토너')[0]).toBe('아누아 어성초 토너');
+    expect(buildKakaoQueries('브랜드 크림 50ml')[0]).toBe('브랜드 크림');
+  });
+
+  it('이름이 짧으면 중복 없이 하나만', () => {
+    expect(buildKakaoQueries('라운드랩 자작나무')).toEqual(['라운드랩 자작나무']);
+  });
+});
 
 describe('lookupKakaoImage', () => {
   it('쇼핑몰 상품컷을 세로로 긴 배너보다 먼저 고른다', async () => {
@@ -47,6 +62,32 @@ describe('lookupKakaoImage', () => {
   it('쓸 만한 사진이 없으면 null', async () => {
     mockFetch(() => ({ json: { documents: [] } }));
     expect(await lookupKakaoImage('없는제품', 'key')).toBeNull();
+  });
+
+  it('첫 검색어가 0건이면 더 짧은 검색어로 다시 찾는다', async () => {
+    const asked: string[] = [];
+    vi.stubGlobal('fetch', async (input: RequestInfo | URL) => {
+      const q = decodeURIComponent(new URL(String(input)).searchParams.get('query') ?? '');
+      asked.push(q);
+      const documents = q === '아누아 어성초' ? [kakaoDoc({ display_sitename: '쇼핑하우' })] : [];
+      return { ok: true, status: 200, json: async () => ({ documents }) } as unknown as Response;
+    });
+    const hit = await lookupKakaoImage('아누아 어성초 77 수딩 토너', 'key');
+    expect(asked).toEqual(['아누아 어성초 수딩 토너', '아누아 어성초 수딩', '아누아 어성초']);
+    expect(hit?.mall).toBe('쇼핑하우');
+  });
+
+  it('쇼핑몰 사진을 블로그 캡처보다 먼저 고른다', async () => {
+    mockFetch(() => ({
+      json: {
+        documents: [
+          kakaoDoc({ display_sitename: '네이버블로그', thumbnail_url: 'https://img.example/blog.jpg' }),
+          kakaoDoc({ display_sitename: '올리브영', thumbnail_url: 'https://img.example/oliveyoung.jpg' }),
+        ],
+      },
+    }));
+    const hit = await lookupKakaoImage('아누아 세럼', 'key');
+    expect(hit?.image).toBe('https://img.example/oliveyoung.jpg');
   });
 });
 
