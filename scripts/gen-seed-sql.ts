@@ -1,8 +1,12 @@
 /**
- * 앱에 번들된 시드 데이터(TS)를 Supabase 마스터 테이블용 SQL 로 변환한다.
- *   npm run seed:sql   →  supabase/seed.sql
- * 생성된 파일을 Supabase SQL Editor 에서 실행하면
- * products / ingredients / ingredient_interactions / board_posts(데모) 가 채워진다.
+ * 앱에 번들된 시드 데이터(TS)를 Supabase 용 SQL 로 변환한다.
+ *   npm run seed:sql
+ *     → supabase/seed-posts.sql  예시 게시글만 (수 KB, 서버 연결 시 실행 권장)
+ *     → supabase/seed.sql        성분·제품·상호작용까지 전부 (수백 KB, 선택)
+ *
+ * 앱은 성분·제품 같은 마스터 데이터를 번들에서 바로 읽기 때문에 seed.sql 은 없어도 동작한다.
+ * 반면 게시글은 서버(board_posts)에서만 읽으므로, 서버 모드에서 게시판이 비어 보이지 않게
+ * seed-posts.sql 을 한 번 실행해 두는 편이 좋다.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { INGREDIENTS, INTERACTIONS, PRODUCTS } from '../src/data/index';
@@ -59,19 +63,38 @@ INTERACTIONS.forEach((x) => {
   );
 });
 
-lines.push('\n-- board_posts (데모 게시글, 작성자 user_id 없음)');
+const postLines: string[] = [];
 BOARD_SEED.forEach((b) => {
-  lines.push(
+  postLines.push(
     `insert into public.board_posts (id,user_id,author_nickname,concern_category,title,body,product_name,verdict,image_url,likes,created_at) values (` +
       [q(b.id), 'null', q(b.authorNickname), q(b.concernCategory), q(b.title), q(b.body), q(b.productName), q(b.verdict), q(b.imageUrl), String(b.likes), q(b.createdAt)].join(',') +
       `) on conflict (id) do nothing;`,
   );
 });
+lines.push('\n-- board_posts (예시 게시글, 작성자 user_id 없음)');
+lines.push(...postLines);
 
 lines.push('\ncommit;');
 
 mkdirSync('supabase', { recursive: true });
 writeFileSync('supabase/seed.sql', lines.join('\n') + '\n', 'utf8');
+
+// 서버 연결 직후 실행할 작은 파일 — 예시 게시글만 담는다
+writeFileSync(
+  'supabase/seed-posts.sql',
+  [
+    '-- 내 화장대 예시 게시글 (자동 생성: npm run seed:sql)',
+    '-- Supabase SQL Editor 에 붙여넣고 실행하세요. 같은 id 는 건너뜁니다.',
+    '-- 화면에는 "예시 글" 배지가 붙어 실제 사용자 후기와 구분됩니다.',
+    'begin;',
+    '',
+    ...postLines,
+    '',
+    'commit;',
+  ].join('\n') + '\n',
+  'utf8',
+);
 console.log(
-  `supabase/seed.sql 생성: 성분 ${INGREDIENTS.length}, 제품 ${PRODUCTS.length}, 상호작용 ${INTERACTIONS.length}, 데모 게시글 ${BOARD_SEED.length}`,
+  `supabase/seed-posts.sql 생성: 예시 게시글 ${BOARD_SEED.length}개 (서버 연결 시 실행 권장)\n` +
+    `supabase/seed.sql 생성: 성분 ${INGREDIENTS.length}, 제품 ${PRODUCTS.length}, 상호작용 ${INTERACTIONS.length} (선택)`,
 );
