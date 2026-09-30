@@ -100,9 +100,11 @@ GitHub 의 리눅스 서버가 APK 를 만들어 줍니다.
 
 ## 실제 제품 사진 (출처 우선순위)
 
-1. 내가 찍어 붙인 사진 → 2. 다른 사용자가 공유한 사진(Supabase Storage `product-photos`) → 3. **네이버 쇼핑 검색 API** → 4. **Open Beauty Facts**(CC BY-SA) → 5. 카테고리 일러스트.
+1. 내가 찍어 붙인 사진 → 2. 다른 사용자가 공유한 사진(Supabase Storage `product-photos`) → 3. **상품 사진 검색 API**(카카오 또는 네이버) → 4. **Open Beauty Facts**(CC BY-SA) → 5. 카테고리 일러스트.
 
-- 네이버: [developers.naver.com](https://developers.naver.com) 에서 애플리케이션을 등록하고 "검색" API 를 추가한 뒤 `NAVER_CLIENT_ID`, `NAVER_CLIENT_SECRET` 을 `.env.local`(개발)과 Vercel 환경변수(배포)에 넣습니다. 키는 서버 함수 `api/product-image.ts` 에서만 읽습니다. 이용약관에 따라 결과를 DB 에 저장하지 않고 출처·링크를 표시합니다(기기 캐시 1일).
+- **카카오 Daum 이미지 검색 (권장 · 지금 발급 가능).** [developers.kakao.com](https://developers.kakao.com) → 내 애플리케이션 → 애플리케이션 추가하기 → 만든 앱의 **앱 키 > REST API 키** 를 복사해 `KAKAO_REST_API_KEY` 로 넣습니다. 별도 사용 신청이나 검수 없이 바로 호출됩니다. 웹 어디서나 긁혀 오는 이미지 검색이라 서버에서 쇼핑몰 상품컷(`collection === 'shopping'`)과 정사각형에 가까운 https 이미지를 우선 고릅니다(`api/_lib/productImage.ts`).
+- **네이버 쇼핑 검색 (신규 발급 종료).** 2026-07-31 자로 네이버 개발자센터에서 검색 API 신규 신청이 끝났고, 쇼핑·책·전문정보 검색은 대체 API 없이 종료됐습니다(나머지는 NCP NAVER API Hub 유료 이관). 그 전에 발급받아 둔 `NAVER_CLIENT_ID`/`NAVER_CLIENT_SECRET` 이 있으면 그대로 동작하며 카카오보다 먼저 시도합니다.
+- 키는 둘 다 서버 함수 `api/product-image.ts` 에서만 읽습니다. 이용약관에 따라 결과를 DB 에 저장하지 않고 출처·원본 링크를 화면에 표시합니다(기기 캐시 1일).
 - Open Beauty Facts 는 키 없이 동작하지만 국내 제품 커버리지가 낮고 분당 10회 제한이 있어 천천히 채워집니다.
 - 브랜드 공식 이미지는 허락 없이 쓰지 않습니다. 사용자가 공유한 사진은 제품 식별용으로만 표시합니다.
 
@@ -149,8 +151,9 @@ git push
    |---|---|---|
    | `VITE_SUPABASE_URL` | 서버 저장 | 이 기기에만 저장 |
    | `VITE_SUPABASE_ANON_KEY` | 서버 저장 | 이 기기에만 저장 |
-   | `NAVER_CLIENT_ID` | 실제 상품 사진 | 일러스트로 표시 |
-   | `NAVER_CLIENT_SECRET` | 실제 상품 사진 | 일러스트로 표시 |
+   | `KAKAO_REST_API_KEY` | 실제 상품 사진 | 일러스트로 표시 |
+   | `NAVER_CLIENT_ID` | 실제 상품 사진(예전 키) | 카카오로 대체 |
+   | `NAVER_CLIENT_SECRET` | 실제 상품 사진(예전 키) | 카카오로 대체 |
    | `VITE_YOUTUBE_API_KEY` | 영상 실시간 검색 | 큐레이션 목록 |
    | `VITE_API_BASE` | 설치형 앱에서만 | 같은 도메인 사용 |
 

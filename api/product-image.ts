@@ -2,7 +2,9 @@ import { handleProductImage } from './_lib/productImage';
 
 /**
  * Vercel Edge Function — GET /api/product-image?q=브랜드 제품명
- * 네이버 쇼핑 검색 API 키는 Vercel 환경변수(NAVER_CLIENT_ID, NAVER_CLIENT_SECRET)에만 둔다.
+ * 검색 API 키는 Vercel 환경변수에만 둔다 (브라우저로 내려가지 않는다).
+ *   KAKAO_REST_API_KEY                        — 카카오 Daum 이미지 검색 (지금 발급 가능)
+ *   NAVER_CLIENT_ID / NAVER_CLIENT_SECRET     — 네이버 쇼핑 검색 (2026-07-31 신규 발급 종료)
  */
 export const config = { runtime: 'edge' };
 
@@ -11,6 +13,7 @@ export default async function handler(request: Request): Promise<Response> {
   const { status, body } = await handleProductImage(q, {
     NAVER_CLIENT_ID: process.env.NAVER_CLIENT_ID,
     NAVER_CLIENT_SECRET: process.env.NAVER_CLIENT_SECRET,
+    KAKAO_REST_API_KEY: process.env.KAKAO_REST_API_KEY,
   });
   return new Response(JSON.stringify(body), {
     status,

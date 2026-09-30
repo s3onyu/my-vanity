@@ -4,13 +4,14 @@ import { BRAND_ALIASES } from '@/data/brands';
 
 /**
  * 제품 실제 사진 찾기 (외부 소스).
- *  1) 네이버 쇼핑 검색 API — 서버 함수(/api/product-image)를 통해. 키가 없으면 501 → 이 소스는 끔.
+ *  1) 상품 사진 검색 — 서버 함수(/api/product-image)를 통해 카카오 Daum 이미지 검색이나
+ *     네이버 쇼핑 검색을 부른다. 서버에 키가 없으면 501 을 주므로 이 소스는 그대로 끈다.
  *  2) Open Beauty Facts — 공개 라이선스(CC BY-SA) 사용자 업로드 사진. 키 없이 바로 쓰지만
  *     검색 API 가 분당 10회로 제한돼 6.5초 간격으로 천천히 조회한다.
- * 결과는 localStorage 에 캐시(네이버 1일 · OBF 30일 · 없음 7일)한다.
+ * 결과는 localStorage 에 캐시(검색 1일 · OBF 30일 · 없음 7일)한다.
  */
 
-export type ImageSource = 'naver' | 'obf';
+export type ImageSource = 'naver' | 'kakao' | 'obf';
 
 export interface ExternalProductImage {
   url: string;
@@ -23,13 +24,13 @@ export interface ExternalProductImage {
 type CacheEntry = { at: number; hit: ExternalProductImage | null };
 
 const API_BASE = ((import.meta.env.VITE_API_BASE as string | undefined) ?? '').replace(/\/$/, '');
-const CACHE_PREFIX = 'my-vanity:img:v1:';
-const TTL: Record<ImageSource | 'none', number> = { naver: 24 * 3600e3, obf: 30 * 86400e3, none: 7 * 86400e3 };
+const CACHE_PREFIX = 'my-vanity:img:v2:';
+const TTL: Record<ImageSource | 'none', number> = { naver: 24 * 3600e3, kakao: 24 * 3600e3, obf: 30 * 86400e3, none: 7 * 86400e3 };
 
 const memory = new Map<string, ExternalProductImage | null>();
 const listeners = new Set<() => void>();
 const pending = new Set<string>();
-let naverAvailable: boolean | null = null; // null = 아직 모름
+let shopAvailable: boolean | null = null; // null = 아직 모름
 
 const notify = () => listeners.forEach((l) => l());
 
@@ -54,25 +55,33 @@ function writeCache(id: string, hit: ExternalProductImage | null) {
 }
 
 // ---------------------------------------------------------------------------
-//  소스 1: 네이버 쇼핑 (서버 프록시)
+//  소스 1: 상품 사진 검색 (서버 프록시 — 카카오 / 네이버)
 // ---------------------------------------------------------------------------
 
-async function fromNaver(product: Product): Promise<ExternalProductImage | null | 'unavailable'> {
-  if (naverAvailable === false) return 'unavailable';
+const SOURCE_LABEL: Record<'naver' | 'kakao', string> = { naver: '네이버 쇼핑', kakao: '다음 이미지 검색' };
+
+async function fromShopSearch(product: Product): Promise<ExternalProductImage | null | 'unavailable'> {
+  if (shopAvailable === false) return 'unavailable';
   try {
     const res = await fetch(`${API_BASE}/api/product-image?q=${encodeURIComponent(`${product.brand} ${product.name}`)}`);
     if (res.status === 501 || res.status === 404) {
-      naverAvailable = false;
+      shopAvailable = false;
       return 'unavailable';
     }
     if (!res.ok) return null;
-    naverAvailable = true;
-    const json = (await res.json()) as { hit: { image: string; link: string; mall: string } | null };
+    shopAvailable = true;
+    const json = (await res.json()) as { hit: { image: string; link: string; mall: string; source?: 'naver' | 'kakao' } | null };
     if (!json.hit) return null;
-    return { url: json.hit.image, source: 'naver', link: json.hit.link, credit: `네이버 쇼핑${json.hit.mall ? ` · ${json.hit.mall}` : ''}` };
+    const source = json.hit.source ?? 'naver';
+    return {
+      url: json.hit.image,
+      source,
+      link: json.hit.link,
+      credit: `${SOURCE_LABEL[source]}${json.hit.mall ? ` · ${json.hit.mall}` : ''}`,
+    };
   } catch {
-    naverAvailable = naverAvailable ?? false;
-    return naverAvailable ? null : 'unavailable';
+    shopAvailable = shopAvailable ?? false;
+    return shopAvailable ? null : 'unavailable';
   }
 }
 
@@ -139,8 +148,8 @@ export function getExternalImage(product: Product): ExternalProductImage | null 
     pending.add(product.id);
     void (async () => {
       let hit: ExternalProductImage | null = null;
-      const naver = await fromNaver(product);
-      if (naver !== 'unavailable' && naver) hit = naver;
+      const shop = await fromShopSearch(product);
+      if (shop !== 'unavailable' && shop) hit = shop;
       if (!hit) hit = await fromObf(product);
       memory.set(product.id, hit);
       writeCache(product.id, hit);
@@ -165,5 +174,5 @@ export function useExternalImage(product: Product | null): ExternalProductImage 
   );
 }
 
-/** 이 기기에서 네이버 쇼핑 소스를 쓸 수 있는지 (한 번이라도 성공하면 true) */
-export const isNaverImageAvailable = () => naverAvailable === true;
+/** 이 기기에서 상품 사진 검색을 쓸 수 있는지 (한 번이라도 성공하면 true) */
+export const isShopImageAvailable = () => shopAvailable === true;
