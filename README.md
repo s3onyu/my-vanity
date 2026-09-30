@@ -138,6 +138,8 @@ git push
 
 ### 2. Vercel 연결 (브라우저에서 한 번만)
 
+프로젝트 대시보드: https://vercel.com/s3onyu1/my-vanity (main 브랜치에 푸시하면 자동 배포)
+
 1. [vercel.com](https://vercel.com) 에 GitHub 계정으로 로그인합니다.
 2. **Add New → Project → Import** 에서 `my-vanity` 저장소를 고릅니다.
 3. 프레임워크·빌드·출력 폴더는 `vercel.json` 이 정의하므로 그대로 둡니다. `api/` 의 서버 함수도 자동 인식됩니다.
