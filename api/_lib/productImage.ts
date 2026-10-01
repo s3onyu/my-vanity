@@ -110,11 +110,18 @@ function pickKakaoDoc(docs: KakaoDoc[]): KakaoDoc | null {
   return best;
 }
 
+/** 에러 본문에 섞여 나오는 앱 키를 앞 6자만 남긴다 — 응답에 키가 그대로 실려 나가지 않게 */
+const maskKeys = (text: string) => text.replace(/[0-9a-f]{24,}/gi, (k) => `${k.slice(0, 6)}…`);
+
 export async function lookupKakaoImage(query: string, restKey: string): Promise<ProductImageHit | null> {
   for (const q of buildKakaoQueries(query)) {
     const url = `https://dapi.kakao.com/v2/search/image?query=${encodeURIComponent(q)}&size=30&sort=accuracy`;
-    const res = await fetch(url, { headers: { Authorization: `KakaoAK ${restKey}` } });
-    if (!res.ok) throw new Error(`kakao ${res.status}`); // 키 문제면 더 시도해도 같다
+    const res = await fetch(url, { headers: { Authorization: `KakaoAK ${restKey.trim()}` } });
+    if (!res.ok) {
+      // 키 문제면 더 시도해도 같다. 어떤 키를 썼는지 앞자리만 함께 알려 준다 (401 은 키가 틀렸을 때만 난다).
+      const detail = await res.text().catch(() => '');
+      throw new Error(`kakao ${res.status} (보낸 키 ${restKey.trim().slice(0, 6)}…, 길이 ${restKey.trim().length}) ${maskKeys(detail).slice(0, 160)}`);
+    }
     const json = (await res.json()) as { documents?: KakaoDoc[] };
     const best = pickKakaoDoc(json.documents ?? []);
     if (best) {
