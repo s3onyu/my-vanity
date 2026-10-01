@@ -16,7 +16,7 @@ const kakaoDoc = (over: Record<string, unknown>) => ({
 function mockFetch(reply: (url: string) => { ok?: boolean; status?: number; json?: unknown }) {
   vi.stubGlobal('fetch', async (input: RequestInfo | URL) => {
     const { ok = true, status = 200, json = {} } = reply(String(input));
-    return { ok, status, json: async () => json } as unknown as Response;
+    return { ok, status, json: async () => json, text: async () => JSON.stringify(json) } as unknown as Response;
   });
 }
 
@@ -70,7 +70,7 @@ describe('lookupKakaoImage', () => {
       const q = decodeURIComponent(new URL(String(input)).searchParams.get('query') ?? '');
       asked.push(q);
       const documents = q === '아누아 어성초' ? [kakaoDoc({ display_sitename: '쇼핑하우' })] : [];
-      return { ok: true, status: 200, json: async () => ({ documents }) } as unknown as Response;
+      return { ok: true, status: 200, json: async () => ({ documents }), text: async () => '' } as unknown as Response;
     });
     const hit = await lookupKakaoImage('아누아 어성초 77 수딩 토너', 'key');
     expect(asked).toEqual(['아누아 어성초 수딩 토너', '아누아 어성초 수딩', '아누아 어성초']);
@@ -110,6 +110,18 @@ describe('handleProductImage', () => {
     });
     expect(status).toBe(200);
     expect((body as { hit: { source: string } }).hit.source).toBe('kakao');
+  });
+
+  it('키가 거부당하면 501 — 앱이 이 소스를 꺼서 제품마다 헛걸음하지 않는다', async () => {
+    mockFetch(() => ({ ok: false, status: 401 }));
+    const { status } = await handleProductImage('아누아 세럼', { KAKAO_REST_API_KEY: '잘못된값' });
+    expect(status).toBe(501);
+  });
+
+  it('일시적인 장애는 502 — 나중에 다시 시도한다', async () => {
+    mockFetch(() => ({ ok: false, status: 500 }));
+    const { status } = await handleProductImage('아누아 세럼', { KAKAO_REST_API_KEY: 'k' });
+    expect(status).toBe(502);
   });
 
   it('검색어가 너무 짧으면 400', async () => {

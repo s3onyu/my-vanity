@@ -28,6 +28,16 @@ export interface ProductImageEnv {
   KAKAO_REST_API_KEY?: string;
 }
 
+/** 공급자가 돌려준 HTTP 상태를 들고 다니는 오류 — 401/403 이면 키가 틀린 것이라 재시도해도 같다 */
+class ProviderError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+  ) {
+    super(message);
+  }
+}
+
 const stripTags = (s: string) => s.replace(/<[^>]+>/g, '').replace(/&quot;/g, '"').replace(/&amp;/g, '&').trim();
 
 // ---------------------------------------------------------------------------
@@ -39,7 +49,7 @@ export async function lookupNaverImage(query: string, clientId: string, clientSe
   const res = await fetch(url, {
     headers: { 'X-Naver-Client-Id': clientId, 'X-Naver-Client-Secret': clientSecret },
   });
-  if (!res.ok) throw new Error(`naver ${res.status}`);
+  if (!res.ok) throw new ProviderError(`naver ${res.status}`, res.status);
   const json = (await res.json()) as { items?: { title: string; link: string; image: string; mallName?: string }[] };
   const item = (json.items ?? []).find((it) => it.image);
   if (!item) return null;
@@ -120,7 +130,7 @@ export async function lookupKakaoImage(query: string, restKey: string): Promise<
     if (!res.ok) {
       // 키 문제면 더 시도해도 같다. 어떤 키를 썼는지 앞자리만 함께 알려 준다 (401 은 키가 틀렸을 때만 난다).
       const detail = await res.text().catch(() => '');
-      throw new Error(`kakao ${res.status} (보낸 키 ${restKey.trim().slice(0, 6)}…, 길이 ${restKey.trim().length}) ${maskKeys(detail).slice(0, 160)}`);
+      throw new ProviderError(`kakao ${res.status} (보낸 키 ${restKey.trim().slice(0, 6)}…, 길이 ${restKey.trim().length}) ${maskKeys(detail).slice(0, 160)}`, res.status);
     }
     const json = (await res.json()) as { documents?: KakaoDoc[] };
     const best = pickKakaoDoc(json.documents ?? []);
@@ -162,15 +172,21 @@ export async function handleProductImage(query: string | null, env: ProductImage
   if (q.length < 2) return { status: 400, body: { error: 'q 파라미터가 필요해요.' } };
 
   const errors: string[] = [];
+  let authFailed = false;
   for (const provider of providers) {
     try {
       const hit = await provider.run(q);
       if (hit) return { status: 200, body: { hit } };
     } catch (err) {
-      errors.push(`${provider.name}: ${(err as Error).message}`);
+      const message = (err as Error).message;
+      // 401/403 은 키가 틀렸다는 뜻이라 다시 불러도 결과가 같다 (환경변수를 고치기 전까지).
+      if (err instanceof ProviderError && (err.status === 401 || err.status === 403)) authFailed = true;
+      errors.push(`${provider.name}: ${message}`);
     }
   }
-  // 전부 실패했으면 502, 그냥 결과가 없던 것뿐이면 200 + hit:null (그래야 다른 소스로 넘어간다)
-  if (errors.length === providers.length) return { status: 502, body: { error: errors.join(' / ') } };
+  if (errors.length === providers.length) {
+    // 키가 거부당한 거면 501 로 알려 준다. 앱이 이 소스를 꺼 두고 제품마다 헛걸음하지 않는다.
+    return { status: authFailed ? 501 : 502, body: { error: errors.join(' / ') } };
+  }
   return { status: 200, body: { hit: null } };
 }
