@@ -127,6 +127,26 @@ let toastTimer: ReturnType<typeof setTimeout> | null = null;
 const sortLogs = (logs: SkinLog[]) => [...logs].sort((a, b) => b.date.localeCompare(a.date) || (a.period === 'PM' ? -1 : 1));
 
 /** 아침/저녁 분리 이전에 저장된 기록을 시간대 기록으로 바꿔준다 */
+/** 서버 응답을 기다릴 최대 시간 — 넘으면 로컬 저장소로 내려앉는다 */
+const SERVER_TIMEOUT_MS = 7000;
+
+/** 정해진 시간 안에 끝나지 않으면 거부한다 (원래 promise 는 그냥 버린다) */
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(`서버가 ${Math.round(ms / 1000)}초 안에 응답하지 않았어요`)), ms);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (err) => {
+        clearTimeout(timer);
+        reject(err);
+      },
+    );
+  });
+}
+
 function normalizeLogs(raw: SkinLog[]): SkinLog[] {
   const out: SkinLog[] = [];
   raw.forEach((l) => {
@@ -185,7 +205,11 @@ export const useAppStore = create<AppState>((set, get) => ({
     let data;
     let posts: BoardPost[] = [];
     try {
-      [data, posts] = await Promise.all([repo.load(), repo.listPosts()]);
+      const fromServer = Promise.all([repo.load(), repo.listPosts()]);
+      // 서버가 에러를 주지 않고 매달려 있는 경우가 있다 (프로젝트 일시정지·DNS 실패 →
+      // supabase-js 가 내부적으로 재시도한다). 그러면 로딩 화면에서 영영 못 빠져나오므로
+      // 시간을 끊고 로컬 저장소로 내려앉는다.
+      [data, posts] = repo.kind === 'supabase' ? await withTimeout(fromServer, SERVER_TIMEOUT_MS) : await fromServer;
     } catch (err) {
       error = (err as Error).message;
       fallback = true;
