@@ -8,6 +8,7 @@ export type ConcernId =
   | 'pigmentation' // 잡티·흔적
   | 'dryness' // 건조함
   | 'sebum' // 피지
+  | 'pores' // 모공
   | 'texture' // 피부결
   | 'barrier' // 장벽
   | 'dullness' // 칙칙함

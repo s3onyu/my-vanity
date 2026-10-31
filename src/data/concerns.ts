@@ -12,6 +12,7 @@ export const CONCERNS: ConcernMeta[] = [
   { id: 'pigmentation', title: '잡티·흔적', icon: '✨', colorTag: 'rose', desc: '멜라닌 관련 흔적, 트러블 뒤에 남은 자국이 신경 쓰이는 시기에 살펴볼 성분들이에요.' },
   { id: 'dryness', title: '건조함', icon: '💧', colorTag: 'sky', desc: '세안 후 당김이 있거나 계절이 바뀔 때 챙기고 싶은 성분들.' },
   { id: 'sebum', title: '피지', icon: '🫧', colorTag: 'butter', desc: '번들거림과 모공이 신경 쓰일 때 자주 언급되는 성분들이에요.' },
+  { id: 'pores', title: '모공', icon: '🔍', colorTag: 'lilac', desc: '늘어난 모공과 블랙헤드가 신경 쓰일 때, 피지 조절과 각질 정돈 계열을 함께 살펴봐요.' },
   { id: 'texture', title: '피부결', icon: '🌾', colorTag: 'lilac', desc: '거칠거나 울퉁불퉁한 결이 고민일 때 각질 관리 계열을 살펴봐요.' },
   { id: 'barrier', title: '장벽', icon: '🛡️', colorTag: 'mint', desc: '쉽게 붉어지고 따가운 시기에는 장벽 지지 성분부터 채워요.' },
   { id: 'dullness', title: '칙칙함', icon: '🌤️', colorTag: 'gold', desc: '피부 톤이 어둡고 생기가 없어 보일 때 항산화·톤 케어 성분을 살펴봐요.' },

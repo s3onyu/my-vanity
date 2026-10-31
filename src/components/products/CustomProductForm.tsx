@@ -4,6 +4,7 @@ import { INGREDIENTS, searchIngredients } from '@/data';
 import { CONCERNS, SKIN_TYPES } from '@/data/concerns';
 import { Chip } from '@/components/ui/Chip';
 import { useAppStore } from '@/store/useAppStore';
+import { parseIngredientList, pickKeyIngredients } from '@/engine/ingredientParser';
 
 const CATEGORIES: ProductCategory[] = ['토너', '에센스', '앰플', '세럼', '로션', '크림', '선크림', '클렌징', '마스크', '아이크림', '오일', '미스트', '필링', '패드', '베이스'];
 
@@ -52,6 +53,8 @@ export function CustomProductForm({ initialBrand = '', initialName = '', initial
   const [category, setCategory] = useState<ProductCategory>(() => initialCategory ?? guessCategory(initialName));
   const [ingredientIds, setIngredientIds] = useState<string[]>(initialIngredientIds.slice(0, 8));
   const [ingQuery, setIngQuery] = useState('');
+  const [fullText, setFullText] = useState('');
+  const [parseNote, setParseNote] = useState<string | null>(null);
   const [concerns, setConcerns] = useState<ConcernId[]>([]);
   const [skinTypes, setSkinTypes] = useState<SkinType[]>(profileSkin ? [profileSkin] : []);
   const [addToCurrent, setAddToCurrent] = useState(true);
@@ -65,6 +68,23 @@ export function CustomProductForm({ initialBrand = '', initialName = '', initial
 
   const toggle = <T,>(setter: React.Dispatch<React.SetStateAction<T[]>>, v: T) =>
     setter((cur) => (cur.includes(v) ? cur.filter((x) => x !== v) : [...cur, v]));
+
+  /** 전성분을 통째로 붙여넣으면 아는 성분을 골라 채워 준다 (제품 DB 에 없는 브랜드용) */
+  const readFullText = () => {
+    const parsed = parseIngredientList(fullText);
+    if (parsed.total === 0) {
+      setParseNote('읽을 성분이 없어요. 쉼표로 구분된 전성분을 붙여넣어 주세요.');
+      return;
+    }
+    const picked = pickKeyIngredients(parsed, 8);
+    if (picked.length === 0) {
+      setParseNote(`성분 ${parsed.total}개를 읽었지만 아는 성분이 없었어요. 아래에서 직접 골라 주세요.`);
+      return;
+    }
+    setIngredientIds(picked);
+    setErrors((e) => ({ ...e, ingredients: undefined }));
+    setParseNote(`전성분 ${parsed.total}개 중 ${parsed.matched.length}개를 알아봤고, 그중 분석에 쓸 ${picked.length}개를 골랐어요.`);
+  };
 
   const submit = async () => {
     const e: typeof errors = {};
@@ -126,6 +146,25 @@ export function CustomProductForm({ initialBrand = '', initialName = '', initial
             </option>
           ))}
         </select>
+      </div>
+
+      <div className="field">
+        <label htmlFor="cp-full">전성분 붙여넣기 (선택 · 가장 빠른 방법)</label>
+        <textarea
+          id="cp-full"
+          className="input"
+          rows={3}
+          value={fullText}
+          onChange={(e) => setFullText(e.target.value.slice(0, 3000))}
+          placeholder="제품 뒷면이나 판매 페이지의 전성분을 그대로 붙여넣으세요. 예: 정제수, 글리세린, 나이아신아마이드, 판테놀, 병풀추출물 ..."
+        />
+        <div className="row mt-1" style={{ gap: 8 }}>
+          <button type="button" className="btn btn--ghost" onClick={readFullText} disabled={!fullText.trim()}>
+            성분 읽어오기
+          </button>
+          {parseNote && <span className="small muted">{parseNote}</span>}
+        </div>
+        <p className="tiny muted mt-1">전성분은 함량이 많은 순서라, 앞쪽 성분과 효과가 센 성분을 우선해서 골라요.</p>
       </div>
 
       <div className="field">
