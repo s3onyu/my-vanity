@@ -1,10 +1,18 @@
 import { useMemo, useState } from 'react';
 import type { RoutineType } from '@/types';
 import { getIngredient } from '@/data';
+import { resolveSources } from '@/data/sources';
 import type { CompatibilityResult, InteractionHit, ScoreReason } from '@/engine/compatibility';
+import { separationPlan } from '@/engine/separation';
+import { checkRoutineIrritants } from '@/engine/irritants';
+import { SKIN_TYPE_LABEL } from '@/data/concerns';
 import { Badge } from '@/components/ui/Chip';
 import { Icon } from '@/components/ui/Icon';
+import { Foldable } from '@/components/ui/Foldable';
+import { SourceList } from '@/components/evidence/SourceList';
 import { useAppStore } from '@/store/useAppStore';
+import { useCatalog } from '@/store/catalog';
+import { SeparationPlanSection } from './SeparationPlan';
 
 export function scoreTone(score: number): 'mint' | 'butter' | 'rose' | 'plum' {
   if (score >= 75) return 'mint';
@@ -55,6 +63,13 @@ export function ScoreRing({ score, size = 96, max = 96 }: { score: number; size?
   );
 }
 
+/** 접힌 상태에서 보여 줄 한 줄 요약 — 제목 몇 개만 이어 붙인다 */
+function summarize(reasons: ScoreReason[]): string {
+  const titles = reasons.slice(0, 3).map((r) => r.title);
+  const rest = reasons.length - titles.length;
+  return titles.join(' · ') + (rest > 0 ? ` 외 ${rest}가지` : '');
+}
+
 function ReasonItem({ reason }: { reason: ScoreReason }) {
   const negative = reason.delta < 0;
   return (
@@ -101,6 +116,7 @@ function InteractionCard({ hit }: { hit: InteractionHit }) {
       <p className="tiny muted mt-1">
         어느 제품에: {hit.productsA.slice(0, 2).join(', ')} · {hit.productsB.slice(0, 2).join(', ')}
       </p>
+      <SourceList sources={resolveSources(ix.sourceIds)} />
     </div>
   );
 }
@@ -108,17 +124,29 @@ function InteractionCard({ hit }: { hit: InteractionHit }) {
 interface Props {
   result: CompatibilityResult;
   routineType: RoutineType;
+  /** 분석한 제품 id — 내 피부 타입에 걸리는 성분을 찾을 때 쓴다 */
+  productIds?: string[];
   compact?: boolean;
 }
 
 /** 성분 궁합 분석 결과 카드 + "무엇을 근거로 계산했나요" (쉬운 말 우선, 자세한 계산은 접기) */
-export function ScoreCard({ result, routineType, compact = false }: Props) {
+export function ScoreCard({ result, routineType, productIds = [], compact = false }: Props) {
   const [showDetail, setShowDetail] = useState(false);
   const [showGlossary, setShowGlossary] = useState(false);
+  const catalog = useCatalog();
+  const skinType = useAppStore((s) => s.profile?.skinType ?? null);
+  const pushOverlay = useAppStore((s) => s.pushOverlay);
   const hits = useMemo(
     () => [...result.interactionHits].sort((x, y) => rank(y.interaction.severity) - rank(x.interaction.severity)),
     [result.interactionHits],
   );
+  // 주의 조합을 "아침/저녁 어디에 둘지"까지 구체적인 계획으로 (요청 6번)
+  const plan = useMemo(() => separationPlan(result.interactionHits, catalog), [result.interactionHits, catalog]);
+  // 내 피부 타입에서 걸리는 성분 (요청 11번)
+  const irritants = useMemo(() => {
+    const products = productIds.map((id) => catalog.products.get(id)).filter((p): p is NonNullable<typeof p> => Boolean(p));
+    return checkRoutineIrritants(products, skinType, catalog);
+  }, [productIds, catalog, skinType]);
 
   if (result.empty) {
     return (
@@ -171,6 +199,35 @@ export function ScoreCard({ result, routineType, compact = false }: Props) {
             </div>
           )}
 
+          {skinType ? (
+            irritants.length > 0 && (
+              <div className="notice notice--warn mt-2">
+                <strong>
+                  {SKIN_TYPE_LABEL[skinType]} 피부에 신경 쓰일 수 있는 성분 {irritants.length}개
+                </strong>
+                <div className="chip-row mt-1">
+                  {irritants.slice(0, 6).map((f) => (
+                    <button
+                      key={f.ingredientId}
+                      type="button"
+                      className={`ing-tag${f.level === 3 ? ' ing-tag--rose' : f.level === 2 ? ' ing-tag--butter' : ''}`}
+                      onClick={() => useAppStore.getState().openIngredient(f.ingredientId)}
+                    >
+                      {f.name}
+                    </button>
+                  ))}
+                </div>
+                <p className="tiny mt-1">{irritants[0].tip}</p>
+              </div>
+            )
+          ) : (
+            <button type="button" className="notice mt-2 link-row" onClick={() => pushOverlay({ type: 'skin-quiz' })}>
+              🧪 피부 유형 검사를 하면 내 피부에 자극될 수 있는 성분을 함께 표시해 드려요 →
+            </button>
+          )}
+
+          <SeparationPlanSection advices={plan} />
+
           <div className="divider" />
           <div className="score-card__label">
             <Icon name="info" size={14} /> 무엇을 근거로 계산했나요
@@ -180,28 +237,22 @@ export function ScoreCard({ result, routineType, compact = false }: Props) {
           </p>
 
           {minus.length > 0 && (
-            <>
-              <div className="reason-group__title">
-                <span>⚠️ 점수를 깎은 이유 {minus.length}가지</span>
-              </div>
+            <Foldable tone="minus" title={`⚠️ 점수를 깎은 이유 ${minus.length}가지`} hint={summarize(minus)}>
               <ol className="reason-plain-list">
                 {minus.map((r, i) => (
                   <ReasonItem key={`${r.key}-${i}`} reason={r} />
                 ))}
               </ol>
-            </>
+            </Foldable>
           )}
           {plus.length > 0 && (
-            <>
-              <div className="reason-group__title mt-2">
-                <span>👍 점수를 올린 이유 {plus.length}가지</span>
-              </div>
+            <Foldable tone="plus" title={`👍 점수를 올린 이유 ${plus.length}가지`} hint={summarize(plus)}>
               <ol className="reason-plain-list">
                 {plus.map((r, i) => (
                   <ReasonItem key={`${r.key}-${i}`} reason={r} />
                 ))}
               </ol>
-            </>
+            </Foldable>
           )}
 
           <div className="row mt-2" style={{ gap: 12 }}>
@@ -246,25 +297,39 @@ export function ScoreCard({ result, routineType, compact = false }: Props) {
           )}
 
           {cautionHits.length > 0 && (
-            <>
-              <div className="score-card__label mt-3">같이 쓸 때 주의할 조합 {cautionHits.length}건</div>
-              <p className="small muted mb-2">각 카드의 💡를 따라 아침/저녁으로 나누거나 격일로 쓰면 대부분 해결돼요.</p>
+            <Foldable
+              tone="minus"
+              title={`🔎 같이 쓸 때 주의할 조합 ${cautionHits.length}건`}
+              hint={cautionHits
+                .slice(0, 3)
+                .map((h) => `${getIngredient(h.interaction.ingredientA)?.nameKo ?? ''} + ${getIngredient(h.interaction.ingredientB)?.nameKo ?? ''}`)
+                .join(' · ')}
+            >
+              <p className="small muted mb-2">
+                각 카드에 이유와 근거 출처(논문·식약처 자료)를 함께 적었어요. 나눠 쓰는 방법은 위 “이렇게 나눠 쓰면 돼요”에 정리돼 있어요.
+              </p>
               <div className="stack stack--sm">
                 {cautionHits.map((h) => (
                   <InteractionCard key={h.interaction.id} hit={h} />
                 ))}
               </div>
-            </>
+            </Foldable>
           )}
           {goodHits.length > 0 && (
-            <>
-              <div className="score-card__label mt-3">같이 쓰기 좋은 조합 {goodHits.length}건</div>
+            <Foldable
+              tone="plus"
+              title={`✅ 같이 쓰기 좋은 조합 ${goodHits.length}건`}
+              hint={goodHits
+                .slice(0, 3)
+                .map((h) => `${getIngredient(h.interaction.ingredientA)?.nameKo ?? ''} + ${getIngredient(h.interaction.ingredientB)?.nameKo ?? ''}`)
+                .join(' · ')}
+            >
               <div className="stack stack--sm">
                 {goodHits.map((h) => (
                   <InteractionCard key={h.interaction.id} hit={h} />
                 ))}
               </div>
-            </>
+            </Foldable>
           )}
         </>
       )}

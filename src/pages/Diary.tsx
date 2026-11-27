@@ -7,6 +7,7 @@ import { Icon } from '@/components/ui/Icon';
 import { useAppStore } from '@/store/useAppStore';
 import { findProduct, useCatalog } from '@/store/catalog';
 import { LogPhotoThumb, SkinPhotoCompare, SkinPhotoSection, SkinPhotoTrend } from '@/components/diary/SkinPhoto';
+import { ProductCompare } from '@/components/diary/ProductCompare';
 
 const METRICS: { key: Metric; label: string; low: string; high: string }[] = [
   { key: 'comfort', label: '편안함', low: '불편', high: '편안' },
@@ -507,7 +508,7 @@ function Insights() {
 
 export function DiaryPage() {
   const logs = useAppStore((s) => s.logs);
-  const [tab, setTab] = useState<'today' | 'timeline' | 'insights'>('today');
+  const [tab, setTab] = useState<'today' | 'timeline' | 'products' | 'insights'>('today');
   const dayCount = useMemo(() => new Set(logs.map((l) => l.date)).size, [logs]);
 
   return (
@@ -517,7 +518,7 @@ export function DiaryPage() {
         <h1 className="h1">
           피부 <em>기록</em>
         </h1>
-        <p>아침 루틴 뒤, 저녁 루틴 뒤 각각 컨디션을 남겨요. 기록이 쌓일수록 인사이트가 열려요.</p>
+        <p>아침 루틴 뒤, 저녁 루틴 뒤 각각 컨디션을 남겨요. 제품별로 모아 비교할 수도 있어요.</p>
       </header>
 
       <div className="tabs" role="tablist">
@@ -525,6 +526,7 @@ export function DiaryPage() {
           [
             ['today', '기록하기'],
             ['timeline', `타임라인 ${dayCount}일`],
+            ['products', '제품별'],
             ['insights', '인사이트'],
           ] as const
         ).map(([id, label]) => (
@@ -543,6 +545,7 @@ export function DiaryPage() {
 
       {tab === 'today' && <DiaryForm />}
       {tab === 'timeline' && <Timeline />}
+      {tab === 'products' && <ProductCompare />}
       {tab === 'insights' && <Insights />}
     </div>
   );

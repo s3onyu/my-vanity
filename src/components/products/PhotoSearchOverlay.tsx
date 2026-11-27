@@ -63,6 +63,9 @@ function MatchedProductCard({ match, photo }: { match: PhotoMatch; photo: string
 interface Props {
   /** true 면 사진 없이 바로 직접 등록 폼으로 */
   registerOnly?: boolean;
+  /** 검색에서 넘어온 경우 등록 폼에 미리 채울 브랜드·제품명 */
+  prefillBrand?: string;
+  prefillName?: string;
 }
 
 function BrandProductRow({ match, photo }: { match: PhotoMatch; photo: string | null }) {
@@ -101,7 +104,7 @@ function BrandProductRow({ match, photo }: { match: PhotoMatch; photo: string | 
  * 1) 사진 선택 → 2) 기기 안에서 전처리 + 다중 패스 OCR → 3) 브랜드·제품명·성분 키워드로 대조
  *    → 이름까지 맞는 제품 / 브랜드 제품 목록에서 담기, 또는 4) 읽어낸 정보로 미리 채운 직접 등록.
  */
-export function PhotoSearchOverlay({ registerOnly = false }: Props) {
+export function PhotoSearchOverlay({ registerOnly = false, prefillBrand = '', prefillName = '' }: Props) {
   const popOverlay = useAppStore((s) => s.popOverlay);
   const showToast = useAppStore((s) => s.showToast);
   const customProducts = useAppStore((s) => s.customProducts);
@@ -293,8 +296,8 @@ export function PhotoSearchOverlay({ registerOnly = false }: Props) {
             </div>
           )}
           <CustomProductForm
-            initialBrand={analysis.guess.brand}
-            initialName={analysis.guess.name}
+            initialBrand={analysis.guess.brand || prefillBrand}
+            initialName={analysis.guess.name || prefillName}
             initialCategory={analysis.guess.category}
             initialIngredientIds={analysis.guess.ingredientIds}
             imageUrl={thumb}

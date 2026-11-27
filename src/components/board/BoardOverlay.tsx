@@ -5,7 +5,8 @@ import { relativeTime } from '@/lib/date';
 import { Overlay } from '@/components/layout/Overlay';
 import { Badge, Chip } from '@/components/ui/Chip';
 import { Icon } from '@/components/ui/Icon';
-import { useAppStore, useVisiblePosts } from '@/store/useAppStore';
+import { FEED_TOPIC_MAP, feedSummary, hasFeedPreference, rankPosts } from '@/engine/feed';
+import { useAppStore, useFeedWeights, useVisiblePosts } from '@/store/useAppStore';
 
 export const VERDICT_META: Record<Verdict, { label: string; color: 'mint' | 'butter' | 'rose'; icon: string }> = {
   good: { label: '좋았어요', color: 'mint', icon: '😊' },
@@ -47,6 +48,25 @@ export function countPostsForProduct(posts: BoardPost[], productName: string): n
     const hits = qs.filter((t) => name.includes(t)).length;
     return hits >= Math.max(1, Math.ceil(qs.length * 0.6));
   }).length;
+}
+
+/** 그 제품 후기의 평가 분포 — 제품 카드에 한 줄로 보여준다 (요청 13번) */
+export function verdictSummaryForProduct(posts: BoardPost[], productName: string): { total: number; good: number; soso: number; bad: number } {
+  const qs = tokens(productName);
+  const mine = qs.length
+    ? posts.filter((p) => {
+        const name = norm(p.productName ?? '');
+        if (!name) return false;
+        if (name.includes(norm(productName))) return true;
+        return qs.filter((t) => name.includes(t)).length >= Math.max(1, Math.ceil(qs.length * 0.6));
+      })
+    : [];
+  return {
+    total: mine.length,
+    good: mine.filter((p) => p.verdict === 'good').length,
+    soso: mine.filter((p) => p.verdict === 'soso').length,
+    bad: mine.filter((p) => p.verdict === 'bad').length,
+  };
 }
 
 export function PostCard({ post, onOpen }: { post: BoardPost; onOpen: () => void }) {
@@ -99,12 +119,19 @@ export function BoardOverlay({ initialQuery = '' }: { initialQuery?: string }) {
   const posts = useVisiblePosts();
   const popOverlay = useAppStore((s) => s.popOverlay);
   const pushOverlay = useAppStore((s) => s.pushOverlay);
+  const weights = useFeedWeights();
   const [filter, setFilter] = useState<ConcernId | 'all'>('all');
   const [query, setQuery] = useState(initialQuery);
+  const [personalized, setPersonalized] = useState(true);
+  const personalizing = personalized && hasFeedPreference(weights);
+
+  // 관심 분야 비중을 적용한 순서 (요청 7번) — 끄면 최신순 그대로
+  const ranked = useMemo(() => rankPosts(posts, personalizing ? weights : {}), [posts, weights, personalizing]);
   const list = useMemo(
-    () => posts.filter((p) => (filter === 'all' || p.concernCategory === filter) && postMatchesQuery(p, query)),
-    [posts, filter, query],
+    () => ranked.filter((r) => (filter === 'all' || r.post.concernCategory === filter) && postMatchesQuery(r.post, query)),
+    [ranked, filter, query],
   );
+  const hiddenCount = posts.length - ranked.length;
   const trimmed = query.trim();
 
   return (
@@ -133,6 +160,20 @@ export function BoardOverlay({ initialQuery = '' }: { initialQuery?: string }) {
           aria-label="후기 검색"
         />
       </div>
+      <div className="feed-bar">
+        <button type="button" className="link-btn" onClick={() => pushOverlay({ type: 'feed-settings' })}>
+          ⚙️ 피드 설정 · {feedSummary(weights)}
+        </button>
+        {hasFeedPreference(weights) && (
+          <label className="feed-bar__toggle small">
+            <input type="checkbox" checked={personalized} onChange={(e) => setPersonalized(e.target.checked)} />
+            내 관심사 우선
+          </label>
+        )}
+      </div>
+      {personalizing && hiddenCount > 0 && (
+        <p className="tiny muted mb-1">“안 보기”로 설정한 분야의 글 {hiddenCount}개를 숨겼어요.</p>
+      )}
       <div className="chip-scroll" role="tablist" aria-label="고민 카테고리">
         <Chip active={filter === 'all'} onClick={() => setFilter('all')}>
           전체
@@ -165,8 +206,15 @@ export function BoardOverlay({ initialQuery = '' }: { initialQuery?: string }) {
         </div>
       ) : (
         <div className="stack mt-2">
-          {list.map((post) => (
-            <PostCard key={post.id} post={post} onOpen={() => pushOverlay({ type: 'post', id: post.id })} />
+          {list.map((r) => (
+            <div key={r.post.id}>
+              {personalizing && r.matchedPriority.length > 0 && (
+                <div className="feed-reason">
+                  ⭐ {r.matchedPriority.map((t) => FEED_TOPIC_MAP[t].label).join(' · ')} 관심 분야라 위로 올렸어요
+                </div>
+              )}
+              <PostCard post={r.post} onOpen={() => pushOverlay({ type: 'post', id: r.post.id })} />
+            </div>
           ))}
         </div>
       )}

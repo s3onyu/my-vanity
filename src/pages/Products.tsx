@@ -7,6 +7,7 @@ import { RoutineList } from '@/components/products/RoutineList';
 import { MatchRecords } from '@/components/products/MatchRecords';
 import { ScoreCard } from '@/components/products/ScoreCard';
 import { RecommendSection } from '@/components/products/RecommendSection';
+import { PersonalFitSection } from '@/components/products/PersonalFitSection';
 
 export function ProductsPage() {
   const activeRoutine = useAppStore((s) => s.activeRoutine);
@@ -67,7 +68,7 @@ export function ProductsPage() {
             <h2 className="h2">성분 궁합 분석</h2>
           </div>
         </div>
-        <ScoreCard result={result} routineType={activeRoutine} />
+        <ScoreCard result={result} routineType={activeRoutine} productIds={items.map((r) => r.productId)} />
       </section>
 
       <section className="section">
@@ -78,6 +79,18 @@ export function ProductsPage() {
           </div>
         </div>
         <MatchRecords />
+      </section>
+
+      <section className="section">
+        <div className="section-head">
+          <div>
+            <div className="eyebrow">From my records</div>
+            <h2 className="h2">
+              내 기록으로 고른 <em>추천</em>
+            </h2>
+          </div>
+        </div>
+        <PersonalFitSection />
       </section>
 
       <section className="section">

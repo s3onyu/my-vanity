@@ -938,6 +938,9 @@
   font-weight: 700;
   font-size: 14px;
   line-height: 1.4;
+  /* "민감성 경향 피부라" 가 어절 중간에서 끊기지 않게 */
+  word-break: keep-all;
+  min-width: 0;
 }
 
 .reason-plain__delta {
@@ -1427,4 +1430,1012 @@
   background: var(--ink);
   border-color: var(--ink);
   color: var(--paper);
+}
+
+/* ===========================================================================
+   근거 출처 (성분 조합·자극 성분 안내에 붙는 논문·기관 자료)
+   ========================================================================= */
+
+.sources {
+  margin-top: 8px;
+}
+
+.sources__toggle {
+  font-size: 11.5px;
+  color: var(--slate);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.sources__list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 10px 12px;
+  background: var(--card);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-sm);
+  display: grid;
+  gap: 10px;
+}
+
+.source {
+  display: flex;
+  gap: 9px;
+  align-items: flex-start;
+}
+
+.source__kind {
+  font-size: 14px;
+  line-height: 1.3;
+}
+
+.source__label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+.source__label a {
+  color: var(--sky-ink);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.source__cite {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 1px;
+}
+
+.source__detail {
+  font-size: 11.5px;
+  color: var(--slate);
+  line-height: 1.5;
+  margin-top: 3px;
+}
+
+.source-inline {
+  margin-top: 4px;
+}
+
+/* ===========================================================================
+   내 피부 타입에서 자극이 될 수 있는 성분
+   ========================================================================= */
+
+.irritant-box {
+  margin-top: 8px;
+}
+
+.irritant-bar {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 8px 11px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  line-height: 1.5;
+  margin-top: 8px;
+  background: var(--bone);
+  color: var(--slate);
+}
+
+.irritant-bar.is-ok {
+  background: var(--mint-2);
+  color: var(--mint-ink);
+}
+
+.irritant-bar.is-empty {
+  background: var(--lilac-2);
+  color: var(--lilac-ink);
+}
+
+.irritant-bar.is-info {
+  background: var(--sky-2);
+  color: var(--sky-ink);
+}
+
+.irritant-bar.is-warn {
+  background: var(--butter-2);
+  color: var(--butter-ink);
+}
+
+.irritant-bar.is-danger {
+  background: var(--rose-2);
+  color: var(--rose-ink);
+}
+
+.irritant-list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.irritant {
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  border-left: 3px solid var(--line);
+  background: var(--bone);
+}
+
+.irritant.is-warn {
+  border-left-color: var(--butter);
+  background: var(--butter-2);
+}
+
+.irritant.is-danger {
+  border-left-color: var(--rose);
+  background: var(--rose-2);
+}
+
+.irritant__level {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--slate);
+}
+
+.irritant__why {
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--ink-2);
+  margin-top: 4px;
+}
+
+.irritant__tip {
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--slate);
+  margin-top: 4px;
+}
+
+/* ===========================================================================
+   나눠 쓰기 계획 (아침/저녁·격일·순서)
+   ========================================================================= */
+
+.plan-card {
+  padding: 13px 14px;
+  border-radius: var(--radius);
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--butter);
+}
+
+.plan-card--high_caution {
+  border-left-color: var(--rose);
+}
+
+.plan-card__kind {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--slate);
+}
+
+.plan-card__headline {
+  font-family: var(--font-serif);
+  font-size: 16px;
+  line-height: 1.4;
+  color: var(--ink);
+  margin-top: 6px;
+}
+
+.plan-slots {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.plan-slot {
+  flex: 1 1 42%;
+  min-width: 130px;
+  padding: 9px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--bone);
+}
+
+.plan-slot--AM {
+  background: var(--butter-2);
+}
+
+.plan-slot--PM {
+  background: var(--lilac-2);
+}
+
+.plan-slot__label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--slate);
+}
+
+.plan-slot__ings {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 3px;
+}
+
+.plan-slot__ings .link-btn {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.plan-slot__products {
+  font-size: 10.5px;
+  color: var(--muted);
+  margin-top: 3px;
+  line-height: 1.4;
+}
+
+.plan-card__why {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--slate);
+  margin-top: 10px;
+}
+
+.plan-steps {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 4px;
+}
+
+.plan-steps li {
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--ink-2);
+}
+
+/* ===========================================================================
+   가격 · 쇼핑몰 링크
+   ========================================================================= */
+
+.price-row {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--line-soft);
+}
+
+.price-row__value {
+  font-size: 13px;
+  color: var(--ink-2);
+}
+
+.price-edit .input {
+  font-size: 13px;
+  padding: 7px 10px;
+}
+
+.shop-links {
+  display: flex;
+  gap: 6px;
+  margin-top: 7px;
+  flex-wrap: wrap;
+}
+
+.shop-link {
+  font-size: 11.5px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: var(--bone);
+  color: var(--slate);
+  border: 1px solid var(--line-soft);
+}
+
+.routine-total {
+  margin-top: 10px;
+  padding: 9px 12px;
+  background: var(--bone);
+  border-radius: var(--radius-sm);
+}
+
+.review-link__verdicts {
+  margin-left: 6px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* ===========================================================================
+   사용 빈도
+   ========================================================================= */
+
+.freq {
+  margin-top: 6px;
+}
+
+.freq__btn {
+  font-size: 11px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--sky-2);
+  color: var(--sky-ink);
+  font-weight: 600;
+}
+
+.freq__panel {
+  margin-top: 6px;
+  padding: 9px 10px;
+  background: var(--bone);
+  border-radius: var(--radius-sm);
+}
+
+.routine-item.is-resting {
+  opacity: 0.62;
+}
+
+/* ===========================================================================
+   오늘 쓸 제품
+   ========================================================================= */
+
+.today-card {
+  border-left: 3px solid var(--mint);
+}
+
+.today-blocks {
+  display: grid;
+  gap: 10px;
+}
+
+.today-list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 7px;
+}
+
+.today-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.today-item__step {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--ink);
+  color: var(--paper);
+  font-size: 10.5px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.today-item__name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+.today-skip {
+  margin-top: 7px;
+  line-height: 1.5;
+}
+
+/* ===========================================================================
+   피부 유형 검사
+   ========================================================================= */
+
+.quiz-cta {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  text-align: left;
+  margin-top: 10px;
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  background: var(--lilac-2);
+  color: var(--lilac-ink);
+}
+
+.quiz-cta__icon {
+  font-size: 20px;
+}
+
+.quiz-cta strong,
+.quiz-cta .tiny {
+  display: block;
+}
+
+.quiz__q {
+  margin-top: 18px;
+}
+
+.quiz__title {
+  font-family: var(--font-serif);
+  font-size: 21px;
+  line-height: 1.38;
+  color: var(--ink);
+  margin-top: 4px;
+}
+
+.quiz__hint {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 6px;
+  line-height: 1.5;
+}
+
+.quiz .option-list {
+  margin-top: 16px;
+}
+
+.quiz-result {
+  text-align: center;
+  padding: 22px 16px;
+  border-radius: var(--radius-lg);
+  background: var(--lilac-2);
+}
+
+.quiz-result__code {
+  font-size: 44px;
+  letter-spacing: 4px;
+  color: var(--lilac-ink);
+  line-height: 1.1;
+}
+
+.quiz-result__title {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--ink);
+  margin-top: 4px;
+}
+
+.quiz-result__lead {
+  font-size: 12.5px;
+  color: var(--slate);
+  margin-top: 6px;
+}
+
+.axis + .axis {
+  margin-top: 14px;
+}
+
+.axis__letter {
+  font-size: 18px;
+  color: var(--ink);
+}
+
+.axis__label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--slate);
+}
+
+.axis__track {
+  position: relative;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--line-soft);
+  margin-top: 5px;
+  overflow: hidden;
+}
+
+.axis__fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--lilac);
+}
+
+.axis__mid {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 1px;
+  height: 100%;
+  background: var(--card);
+}
+
+.axis__desc {
+  font-size: 11.5px;
+  color: var(--slate);
+  line-height: 1.55;
+  margin-top: 5px;
+}
+
+.legend {
+  display: grid;
+  gap: 5px;
+  margin: 0;
+}
+
+.legend__item {
+  display: flex;
+  gap: 10px;
+  font-size: 12px;
+}
+
+.legend__item dt {
+  font-weight: 700;
+  color: var(--ink-2);
+  min-width: 56px;
+}
+
+.legend__item dd {
+  margin: 0;
+  color: var(--slate);
+}
+
+/* ===========================================================================
+   계정
+   ========================================================================= */
+
+.pw-strength {
+  margin-top: 6px;
+}
+
+.pw-strength__track {
+  height: 5px;
+  border-radius: 999px;
+  background: var(--line-soft);
+  overflow: hidden;
+  margin-bottom: 3px;
+}
+
+.pw-strength__fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.2s;
+  background: var(--danger);
+}
+
+.pw-strength__fill.is-2 {
+  background: var(--butter);
+}
+
+.pw-strength__fill.is-3,
+.pw-strength__fill.is-4 {
+  background: var(--mint);
+}
+
+.bullets {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 4px;
+}
+
+.bullets li {
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--slate);
+}
+
+.link-row {
+  display: block;
+  width: 100%;
+  text-align: left;
+}
+
+/* ===========================================================================
+   피드 개인화
+   ========================================================================= */
+
+.feed-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.feed-bar__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--slate);
+}
+
+.feed-reason {
+  font-size: 11px;
+  color: var(--gold-ink);
+  background: var(--gold-2);
+  padding: 4px 10px;
+  border-radius: 999px 999px 0 0;
+  display: inline-block;
+}
+
+.topic-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--card);
+  border: 1px solid var(--line-soft);
+}
+
+.topic-row.is-up {
+  border-color: var(--gold);
+  background: var(--gold-2);
+}
+
+.topic-row.is-off {
+  opacity: 0.6;
+}
+
+.topic-row__label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+.segment--sm .segment__btn {
+  padding: 5px 9px;
+  font-size: 12px;
+}
+
+.preview-list {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 4px;
+}
+
+.preview-list li {
+  font-size: 12px;
+  color: var(--slate);
+}
+
+/* ===========================================================================
+   제품별 기록 비교
+   ========================================================================= */
+
+.ph-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.ph-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 11px;
+  background: var(--card);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius);
+}
+
+.ph-row.is-checked {
+  border-color: var(--mint);
+  background: var(--mint-2);
+}
+
+.ph-row__pick input {
+  width: 18px;
+  height: 18px;
+}
+
+.ph-row__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  font-size: 10.5px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.ph-row__stats {
+  display: flex;
+  gap: 10px;
+  text-align: center;
+}
+
+.ph-stat {
+  display: grid;
+  gap: 1px;
+}
+
+.ph-stat strong {
+  font-size: 14px;
+  font-family: var(--font-serif);
+  color: var(--ink);
+}
+
+.ph-table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.ph-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.ph-table caption {
+  caption-side: bottom;
+  text-align: left;
+  padding-top: 6px;
+}
+
+.ph-table th,
+.ph-table td {
+  padding: 7px 8px;
+  border-bottom: 1px solid var(--line-soft);
+  text-align: center;
+  white-space: nowrap;
+}
+
+.ph-table thead th {
+  font-size: 11.5px;
+  color: var(--slate);
+  background: var(--bone);
+  /* 제품 이름은 길어서 줄바꿈을 허용한다 — 2~3개까지 가로 스크롤 없이 들어가게 */
+  white-space: normal;
+  max-width: 110px;
+  word-break: keep-all;
+}
+
+.ph-table tbody th {
+  white-space: normal;
+  word-break: keep-all;
+}
+
+.ph-table tbody th {
+  text-align: left;
+  font-weight: 600;
+  color: var(--slate);
+  font-size: 11.5px;
+}
+
+.ph-table td.is-best {
+  background: var(--mint-2);
+  color: var(--mint-ink);
+  font-weight: 700;
+}
+
+.price-row--compact {
+  margin-top: 6px;
+  padding-top: 6px;
+}
+
+.price-row--compact .input {
+  font-size: 12px;
+  padding: 5px 8px;
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+   접히는 섹션 (Foldable) — 점수 이유처럼 길어지는 목록을 평소엔 접어 둔다
+   ─────────────────────────────────────────────────────────────────────────── */
+.foldable {
+  border: 1px solid var(--line-soft);
+  border-radius: 14px;
+  background: var(--surface-soft, rgba(255, 255, 255, 0.5));
+  margin-top: 10px;
+  overflow: hidden;
+}
+.foldable__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 11px 12px;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.foldable__title {
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.4;
+  min-width: 0;
+  word-break: keep-all;
+}
+.foldable__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  flex: 0 0 auto;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--line-soft);
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--ink-soft, #6b6b6b);
+  white-space: nowrap;
+}
+.foldable__chev {
+  display: inline-flex;
+  transition: transform 0.18s ease;
+}
+.foldable.is-open .foldable__chev {
+  transform: rotate(90deg);
+}
+.foldable__hint {
+  margin: -4px 12px 10px;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--ink-soft, #7a7a7a);
+  word-break: keep-all;
+}
+.foldable__body {
+  padding: 0 7px 10px;
+}
+.foldable__body > .reason-plain-list,
+.foldable__body > .stack {
+  margin-top: 0;
+}
+.foldable--minus .foldable__head {
+  background: color-mix(in srgb, var(--rose) 12%, transparent);
+}
+.foldable--plus .foldable__head {
+  background: color-mix(in srgb, var(--mint) 14%, transparent);
+}
+.foldable--minus .foldable__toggle {
+  background: color-mix(in srgb, var(--rose) 26%, white);
+}
+.foldable--plus .foldable__toggle {
+  background: color-mix(in srgb, var(--mint) 28%, white);
+}
+
+/* 검색 결과가 없을 때 안내 — 올리브영에서 전성분을 가져오는 길을 보여 준다 */
+.not-found-help {
+  border: 1px dashed var(--line);
+  border-radius: 14px;
+  padding: 12px;
+  text-align: left;
+  background: var(--surface-soft, rgba(255, 255, 255, 0.5));
+}
+.not-found-help p {
+  margin: 0 0 8px;
+  line-height: 1.6;
+  word-break: keep-all;
+}
+.not-found-help em {
+  font-style: normal;
+  font-weight: 600;
+  background: color-mix(in srgb, var(--butter) 40%, transparent);
+  border-radius: 4px;
+  padding: 0 3px;
+}
+.not-found-help .shop-links {
+  margin-bottom: 2px;
+}
+
+/* 검색어로 못 찾아 브랜드로 넓혔을 때의 안내 */
+.search-widened {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 10px 12px;
+  border: 1px dashed color-mix(in srgb, var(--rose) 45%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--rose) 8%, transparent);
+}
+.search-widened p {
+  margin: 0;
+  word-break: keep-all;
+}
+.search-widened .btn {
+  align-self: flex-start;
+}
+
+/* ---------- 내 기록 기반 추천 ---------- */
+
+.fit-profile {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border-radius: var(--radius);
+  background: var(--card);
+  border: 1px solid var(--line);
+  margin-bottom: 10px;
+}
+.fit-profile p {
+  margin: 0;
+  word-break: keep-all;
+}
+.fit-profile__group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.fit-profile__title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+.fit-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.fit-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 4px 6px 4px 10px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  border: 1px solid transparent;
+}
+.fit-chip__name {
+  word-break: keep-all;
+}
+.fit-chip__count {
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  background: color-mix(in srgb, var(--card) 70%, transparent);
+}
+.fit-chip--favorite {
+  background: var(--mint-2);
+  color: var(--mint-ink);
+  border-color: var(--mint);
+}
+.fit-chip--suspect {
+  background: var(--rose-2);
+  color: var(--rose-ink);
+  border-color: var(--rose);
+}
+
+.fit-reasons {
+  list-style: none;
+  margin: 0;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border-radius: 10px;
+  background: var(--bone);
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+.fit-reasons li {
+  position: relative;
+  padding-left: 20px;
+  word-break: keep-all;
+}
+.fit-reasons li::before {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+.fit-reasons__good::before {
+  content: '✓';
+  color: var(--mint-ink);
+  font-weight: 700;
+}
+.fit-reasons__bad {
+  color: var(--rose-ink);
+}
+.fit-reasons__bad::before {
+  content: '⚠';
+}
+
+.fit-steps {
+  margin: 0;
+  padding: 0 4px 0 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--ink-2);
+}
+.fit-steps li {
+  word-break: keep-all;
+}
+.fit-chip--weak {
+  background: transparent;
+  border-style: dashed;
+  opacity: 0.75;
 }

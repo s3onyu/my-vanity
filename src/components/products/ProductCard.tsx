@@ -1,11 +1,13 @@
-import type { ReactNode } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import type { Product } from '@/types';
 import { getIngredient } from '@/data';
 import { Badge } from '@/components/ui/Chip';
 import { Icon } from '@/components/ui/Icon';
 import { useAppStore, selectMatchOf } from '@/store/useAppStore';
-import { countPostsForProduct } from '@/components/board/BoardOverlay';
+import { countPostsForProduct, verdictSummaryForProduct } from '@/components/board/BoardOverlay';
 import { ProductThumb } from './ProductThumb';
+import { IrritantNotice } from './IrritantNotice';
+import { PriceRow } from './PriceRow';
 
 interface IngredientTagsProps {
   ids: string[];
@@ -50,6 +52,9 @@ export function ProductCard({ product, showMatch = true, action, footer }: Produ
   const removeCustomProduct = useAppStore((s) => s.removeCustomProduct);
   const pushOverlay = useAppStore((s) => s.pushOverlay);
   const reviewCount = useAppStore((s) => countPostsForProduct(s.posts, product.name));
+  // 셀렉터 안에서 만들면 매번 새 객체가 돼 무한 렌더가 된다 — posts 가 바뀔 때만 다시 계산한다
+  const posts = useAppStore((s) => s.posts);
+  const reviews = useMemo(() => verdictSummaryForProduct(posts, product.name), [posts, product.name]);
 
   const onAdd = async () => {
     const r = await addToRoutine(product.id);
@@ -91,8 +96,15 @@ export function ProductCard({ product, showMatch = true, action, footer }: Produ
         )}
       </div>
       <IngredientTags ids={product.keyIngredients} />
+      <IrritantNotice product={product} />
+      <PriceRow product={product} />
       <button type="button" className="review-link" onClick={() => pushOverlay({ type: 'board', query: product.name })}>
         💬 {reviewCount > 0 ? `다른 사람 후기 ${reviewCount}건 보기` : '아직 후기가 없어요 · 첫 후기 쓰기'}
+        {reviews.total > 0 && (
+          <span className="review-link__verdicts">
+            😊 {reviews.good} · 😐 {reviews.soso} · 😞 {reviews.bad}
+          </span>
+        )}
       </button>
       <div className="product-card__actions">
         {showMatch && (

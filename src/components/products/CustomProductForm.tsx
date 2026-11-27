@@ -5,6 +5,9 @@ import { CONCERNS, SKIN_TYPES } from '@/data/concerns';
 import { Chip } from '@/components/ui/Chip';
 import { useAppStore } from '@/store/useAppStore';
 import { parseIngredientList, pickKeyIngredients } from '@/engine/ingredientParser';
+import { checkIrritants } from '@/engine/irritants';
+import { useCatalog } from '@/store/catalog';
+import { SKIN_TYPE_LABEL } from '@/data/concerns';
 
 const CATEGORIES: ProductCategory[] = ['토너', '에센스', '앰플', '세럼', '로션', '크림', '선크림', '클렌징', '마스크', '아이크림', '오일', '미스트', '필링', '패드', '베이스'];
 
@@ -47,11 +50,15 @@ export function CustomProductForm({ initialBrand = '', initialName = '', initial
   const addToRoutine = useAppStore((s) => s.addToRoutine);
   const activeRoutine = useAppStore((s) => s.activeRoutine);
   const profileSkin = useAppStore((s) => s.profile?.skinType ?? null);
+  const setProductPrice = useAppStore((s) => s.setProductPrice);
+  const catalog = useCatalog();
 
   const [brand, setBrand] = useState(initialBrand);
   const [name, setName] = useState(initialName);
   const [category, setCategory] = useState<ProductCategory>(() => initialCategory ?? guessCategory(initialName));
   const [ingredientIds, setIngredientIds] = useState<string[]>(initialIngredientIds.slice(0, 8));
+  const [volume, setVolume] = useState('');
+  const [price, setPrice] = useState('');
   const [ingQuery, setIngQuery] = useState('');
   const [fullText, setFullText] = useState('');
   const [parseNote, setParseNote] = useState<string | null>(null);
@@ -94,6 +101,7 @@ export function CustomProductForm({ initialBrand = '', initialName = '', initial
     setErrors(e);
     if (Object.keys(e).length) return;
     setBusy(true);
+    const ml = volume.trim() ? Number(volume.replace(/[^\d.]/g, '')) : null;
     const product = await addCustomProduct({
       brand: brand.trim(),
       name: name.trim(),
@@ -103,7 +111,10 @@ export function CustomProductForm({ initialBrand = '', initialName = '', initial
       relatedConcerns: concerns,
       skinTypes: skinTypes.length ? skinTypes : ['dry', 'oily', 'combo', 'normal', 'sensitive'],
       imageUrl,
+      volume: ml && ml > 0 ? ml : null,
     });
+    const won = price.trim() ? Number(price.replace(/[^\d]/g, '')) : 0;
+    if (won > 0) await setProductPrice(product.id, won, ml);
     let added = false;
     if (addToCurrent) added = (await addToRoutine(product.id)) === 'added';
     setBusy(false);
@@ -191,6 +202,52 @@ export function CustomProductForm({ initialBrand = '', initialName = '', initial
         </div>
         {errors.ingredients && <span className="field-error">{errors.ingredients}</span>}
       </div>
+
+      <div className="field">
+        <label htmlFor="cp-price">가격·용량 (선택)</label>
+        <div className="row" style={{ gap: 6 }}>
+          <input
+            id="cp-price"
+            className="input"
+            inputMode="numeric"
+            value={price}
+            onChange={(e) => setPrice(e.target.value.slice(0, 9))}
+            placeholder="가격 (원)"
+          />
+          <input
+            className="input"
+            inputMode="decimal"
+            value={volume}
+            onChange={(e) => setVolume(e.target.value.slice(0, 6))}
+            placeholder="용량 (ml·g)"
+            aria-label="용량 (ml 또는 g)"
+          />
+        </div>
+        <p className="tiny muted mt-1">적어 두면 루틴 전체 금액과 1ml 당 가격을 계산해 드려요.</p>
+      </div>
+
+      {profileSkin && ingredientIds.length > 0 && (() => {
+        const check = checkIrritants(
+          { id: 'preview', brand, name, aliases: [], category, keyIngredients: ingredientIds, relatedConcerns: [], skinTypes: [], verified: false },
+          profileSkin,
+          catalog,
+        );
+        return check.flags.length > 0 ? (
+          <div className="notice notice--warn">
+            <strong>{SKIN_TYPE_LABEL[profileSkin]} 피부에 신경 쓰일 수 있는 성분 {check.flags.length}개</strong>
+            <div className="chip-row mt-1">
+              {check.flags.map((f) => (
+                <Chip key={f.ingredientId} small>
+                  {f.name}
+                </Chip>
+              ))}
+            </div>
+            <p className="tiny mt-1">{check.flags[0].tip}</p>
+          </div>
+        ) : (
+          <p className="small muted">✅ {SKIN_TYPE_LABEL[profileSkin]} 피부에서 특별히 걸리는 성분은 없어요.</p>
+        );
+      })()}
 
       <div className="field">
         <label>관련 고민 (선택)</label>

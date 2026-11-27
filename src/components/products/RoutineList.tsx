@@ -4,8 +4,12 @@ import { Icon } from '@/components/ui/Icon';
 import { useAppStore, useRoutine } from '@/store/useAppStore';
 import { findProduct } from '@/store/catalog';
 import { CATEGORY_STEP } from '@/engine/constants';
+import { isScheduled } from '@/engine/schedule';
+import { todayISO } from '@/lib/date';
 import { IngredientTags } from './ProductCard';
 import { ProductThumb } from './ProductThumb';
+import { FrequencyPicker } from './FrequencyPicker';
+import { PriceRow, RoutineTotal } from './PriceRow';
 
 export function RoutineList() {
   const activeRoutine = useAppStore((s) => s.activeRoutine);
@@ -14,6 +18,7 @@ export function RoutineList() {
   const removeFromRoutine = useAppStore((s) => s.removeFromRoutine);
   const sortRoutineByStep = useAppStore((s) => s.sortRoutineByStep);
   const showToast = useAppStore((s) => s.showToast);
+  const today = todayISO();
 
   if (items.length === 0) {
     return (
@@ -49,8 +54,9 @@ export function RoutineList() {
         const product = findProduct(item.productId);
         if (!product) return null;
         const day = usageDay(item.startedAt);
+        const restingToday = !isScheduled(item, today);
         return (
-          <li key={item.id} className="routine-item">
+          <li key={item.id} className={`routine-item${restingToday ? ' is-resting' : ''}`}>
             <div className="routine-item__visual">
               <ProductThumb product={product} size={48} editable />
               <span className="routine-item__step" aria-hidden="true">
@@ -64,10 +70,13 @@ export function RoutineList() {
                 <Badge>{product.category}</Badge>
                 <span>사용 {day}일째</span>
                 <span>· {item.startedAt.slice(5).replace('-', '/')} 시작</span>
+                {restingToday && <Badge color="butter">오늘 쉬는 날</Badge>}
               </div>
               <div className="mt-1">
                 <IngredientTags ids={product.keyIngredients} max={4} />
               </div>
+              <FrequencyPicker item={item} />
+              <PriceRow product={product} compact />
             </div>
             <div className="routine-item__ctrl">
               <button
@@ -104,6 +113,7 @@ export function RoutineList() {
         );
       })}
     </ol>
+    <RoutineTotal productIds={items.map((i) => i.productId)} />
     </>
   );
 }

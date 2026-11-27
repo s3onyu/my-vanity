@@ -98,9 +98,20 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 8px;
   margin-top: 10px;
   font-size: 12.5px;
   color: var(--muted);
+}
+
+/* 브랜드로 넓혔다는 안내가 길어져도 "닫기" 가 쪼개지지 않게 */
+.search-meta > span {
+  min-width: 0;
+  word-break: keep-all;
+}
+.search-meta > .link-btn {
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 /* ---------- 루틴 ---------- */

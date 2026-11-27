@@ -11,7 +11,9 @@ import { ScoreRing, scoreTone } from '@/components/products/ScoreCard';
 import { CategoryBadges } from '@/components/ingredients/IngredientCard';
 import { VERDICT_META } from '@/components/board/BoardOverlay';
 import { TutorialPreview } from '@/components/tutorial/TutorialOverlay';
-import { useAppStore } from '@/store/useAppStore';
+import { TodayPlanCard } from '@/components/products/TodayPlanCard';
+import { FEED_TOPIC_MAP, hasFeedPreference, rankPosts } from '@/engine/feed';
+import { useAppStore, useFeedWeights } from '@/store/useAppStore';
 import { useCatalog } from '@/store/catalog';
 
 function RoutineSummary({ type }: { type: RoutineType }) {
@@ -59,8 +61,12 @@ export function HomePage() {
   const posts = useAppStore((s) => s.posts);
   const pushOverlay = useAppStore((s) => s.pushOverlay);
   const openIngredient = useAppStore((s) => s.openIngredient);
+  const weights = useFeedWeights();
   const today = todayISO();
   const ingredient = useMemo(() => ingredientOfTheDay(today), [today]);
+  // 관심 분야를 정했으면 홈 미리보기도 그 순서로 보여준다 (요청 7번)
+  const previewPosts = useMemo(() => rankPosts(posts, weights).slice(0, 6), [posts, weights]);
+  const personalized = hasFeedPreference(weights);
 
   return (
     <div className="page">
@@ -74,6 +80,7 @@ export function HomePage() {
       {profile && (
         <div className="profile-strip">
           <span>
+            {profile.skinCode && <Badge color="lilac">{profile.skinCode}</Badge>}{' '}
             <strong>{profile.skinType ? SKIN_TYPE_LABEL[profile.skinType] : '타입 미설정'}</strong>
             {' · '}
             {profile.concerns.map((c) => CONCERN_MAP[c].title).join(', ') || '고민 미설정'}
@@ -88,17 +95,38 @@ export function HomePage() {
           </div>
         </div>
       )}
+      {!profile?.skinCode && (
+        <button type="button" className="quiz-cta" onClick={() => pushOverlay({ type: 'skin-quiz' })}>
+          <span className="quiz-cta__icon">🧪</span>
+          <span className="flex-1">
+            <strong>피부 유형 검사</strong>
+            <span className="tiny muted">질문 15개로 유분·민감·색소·주름 네 축의 내 유형을 찾아요</span>
+          </span>
+          <Icon name="chevron" size={14} />
+        </button>
+      )}
       <div className="row row--between mt-1">
         <span className="tiny muted">
           {storage.kind === 'supabase' ? '☁️ 서버(Supabase)에 저장 · 재방문 시 자동 복원' : '📱 이 기기(localStorage)에 저장 · 재방문 시 자동 복원'}
         </span>
       </div>
+      {storage.missing.length > 0 && (
+        <div className="notice notice--warn mt-2">
+          서버에 {storage.missing.map((m) => (m === 'profile' ? '피부 유형 검사 결과' : '내가 산 가격')).join(' · ')} 저장 칸이 아직 없어요.
+          {storage.pending > 0 ? ` 지금은 이 기기에만 보관 중이에요(${storage.pending}건).` : ''} Supabase SQL Editor 에서{' '}
+          <code>supabase/migrate-feedback.sql</code> 을 실행하면 다음 접속 때 자동으로 서버에 올라가요.
+        </div>
+      )}
       {storage.fallback && (
         <div className="notice notice--warn mt-2">
           서버에 연결하지 못해 이 기기에만 저장하고 있어요. 네트워크와 Supabase 설정(익명 로그인, 테이블)을 확인한 뒤 새로고침해주세요.
           <div className="tiny mt-1">{storage.error}</div>
         </div>
       )}
+
+      <section className="section">
+        <TodayPlanCard />
+      </section>
 
       <section className="section">
         <div className="section-head">
@@ -140,12 +168,18 @@ export function HomePage() {
             <div className="eyebrow">Community</div>
             <h2 className="h2">다른 사람들의 화장대</h2>
           </div>
-          <button type="button" className="link-btn" onClick={() => pushOverlay({ type: 'board' })}>
-            전체 보기
-          </button>
+          <div className="row" style={{ gap: 10 }}>
+            <button type="button" className="link-btn" onClick={() => pushOverlay({ type: 'feed-settings' })}>
+              {personalized ? '피드 설정' : '관심사 설정'}
+            </button>
+            <button type="button" className="link-btn" onClick={() => pushOverlay({ type: 'board' })}>
+              전체 보기
+            </button>
+          </div>
         </div>
+        {personalized && <p className="tiny muted mb-1">⭐ 내가 고른 관심 분야를 먼저 보여주고 있어요.</p>}
         <div className="h-scroll">
-          {posts.slice(0, 6).map((post) => {
+          {previewPosts.map(({ post, matchedPriority }) => {
             const meta = CONCERN_MAP[post.concernCategory];
             const v = VERDICT_META[post.verdict];
             return (
@@ -161,6 +195,9 @@ export function HomePage() {
                 <div className="row" style={{ gap: 4 }}>
                   <Badge color={meta.colorTag}>{meta.title}</Badge>
                   <Badge color={v.color}>{v.label}</Badge>
+                  {personalized && matchedPriority.length > 0 && (
+                    <Badge color="gold">⭐ {FEED_TOPIC_MAP[matchedPriority[0]].label}</Badge>
+                  )}
                 </div>
                 <div className="post-preview__title clamp-2">{post.title}</div>
                 {post.productName && <div className="tiny muted ellipsis">{post.productName}</div>}
