@@ -280,6 +280,10 @@ function scoreProduct(p: Product, tokens: string[], collapsed: string, brand: De
     }
   });
   if (nameTokens.length >= 2 && matchedTokens === nameTokens.length) score += 4;
+  // 포장에 없는 단어가 이름에 남아 있으면 그만큼 다른 제품일 가능성이 있다.
+  // (예: "어성초 77 수분 진정 토너" 가 찍혔는데 "어성초 77 히알루론산 수분 진정 토너" 가 뽑히는 것을 막는다)
+  // OCR 이 단어를 놓치는 일도 많으므로 벌점은 작게, 두 단어까지만 센다.
+  score -= Math.min(2, nameTokens.length - matchedTokens) * 1.5;
 
   // 브랜드 표기('anua', 'round lab')는 별칭에 섞여 있어도 이름 신호로 치지 않는다
   const brandForms = new Set(brandVariants(p.brand).map(norm));
@@ -293,10 +297,12 @@ function scoreProduct(p: Product, tokens: string[], collapsed: string, brand: De
       hits.push(alias);
       return;
     }
+    // 이름에 이미 있는 단어는 별칭에서 또 세지 않는다 (같은 단어로 점수가 두 번 붙는 것 방지)
+    const nameTokenSet = new Set(nameTokens);
     const aliasTokens = alias
       .split(/\s+/)
       .map(norm)
-      .filter((t) => t.length >= 3 && !brandTokens.has(t));
+      .filter((t) => t.length >= 3 && !brandTokens.has(t) && !nameTokenSet.has(t));
     let aliasHits = 0;
     aliasTokens.forEach((t) => {
       const sim = bestSim(tokens, collapsed, t);

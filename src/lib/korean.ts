@@ -4,7 +4,9 @@
  */
 export function josa(word: string, pair: '을/를' | '이/가' | '은/는' | '과/와'): string {
   const [withFinal, withoutFinal] = pair.split('/');
-  const last = word.trim().slice(-1);
+  // "글라이콜릭애씨드(AHA)" 처럼 괄호로 끝나면 괄호를 떼고 앞 글자로 판단한다
+  const base = word.trim().replace(/\s*\([^)]*\)$/, '').trim();
+  const last = (base || word.trim()).slice(-1);
   const code = last.charCodeAt(0);
   const isHangul = code >= 0xac00 && code <= 0xd7a3;
   if (!isHangul) {
