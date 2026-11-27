@@ -10,6 +10,8 @@ export const INTERACTIONS: IngredientInteraction[] = [
     ingredientA: 'retinol',
     ingredientB: 'glycolic-acid',
     severity: 'caution',
+    separation: 'day',
+    sourceIds: ['mukherjee-2006', 'zasada-2019', 'kornhauser-2010', 'mfds-aha'],
     reason:
       '레티놀은 각질 턴오버를 촉진하고 글라이콜릭애씨드는 각질세포 간 결합을 느슨하게 해요. 두 작용이 겹치면 장벽이 얇아진 상태에서 건조·홍조 같은 자극 부담이 함께 높아질 수 있어요.',
     recommendation:
@@ -20,6 +22,8 @@ export const INTERACTIONS: IngredientInteraction[] = [
     ingredientA: 'retinol',
     ingredientB: 'salicylic-acid',
     severity: 'caution',
+    separation: 'day',
+    sourceIds: ['mukherjee-2006', 'zasada-2019', 'kornhauser-2010', 'aad-acne'],
     reason:
       '레티놀의 리뉴얼 작용과 살리실릭애씨드의 유용성 각질 용해가 같은 밤에 겹치면 건조와 벗겨짐이 누적될 수 있어요. 반응은 개인차가 커요.',
     recommendation:
@@ -30,6 +34,8 @@ export const INTERACTIONS: IngredientInteraction[] = [
     ingredientA: 'retinol',
     ingredientB: 'lactic-acid',
     severity: 'caution',
+    separation: 'day',
+    sourceIds: ['mukherjee-2006', 'zasada-2019', 'kornhauser-2010', 'mfds-aha'],
     reason:
       '락틱애씨드는 AHA 중 순한 편이지만 각질층에 작용하는 건 같아서, 레티놀과 겹치면 자극 부담이 늘 수 있어요. 다만 글라이콜릭보다는 여지가 있는 조합이에요.',
     recommendation:
@@ -40,6 +46,8 @@ export const INTERACTIONS: IngredientInteraction[] = [
     ingredientA: 'glycolic-acid',
     ingredientB: 'salicylic-acid',
     severity: 'caution',
+    separation: 'day',
+    sourceIds: ['kornhauser-2010', 'mfds-aha', 'aad-acne'],
     reason:
       'AHA(수용성)와 BHA(유용성)는 작용 위치는 달라도 모두 각질 결합을 느슨하게 해요. 같은 단계에 겹치면 각질 관리 강도가 과해져 따가움과 건조가 누적될 수 있어요.',
     recommendation:
@@ -50,6 +58,8 @@ export const INTERACTIONS: IngredientInteraction[] = [
     ingredientA: 'ascorbic-acid',
     ingredientB: 'retinol',
     severity: 'caution',
+    separation: 'time',
+    sourceIds: ['pinnell-2001', 'telang-2013', 'mukherjee-2006', 'zasada-2019'],
     reason:
       '순수 비타민C는 pH 3.5 이하에서 안정·흡수되는데, 이 낮은 pH 환경이 레티놀 자극과 겹치면 홍조·따끔함 부담이 커질 수 있어요 (Pinnell et al., 2001).',
     recommendation:
@@ -60,6 +70,8 @@ export const INTERACTIONS: IngredientInteraction[] = [
     ingredientA: 'ascorbic-acid',
     ingredientB: 'niacinamide',
     severity: 'neutral',
+    separation: 'time',
+    sourceIds: ['pinnell-2001', 'telang-2013', 'wohlrab-2014', 'bissett-2005'],
     reason:
       '나이아신아마이드가 니코틴산으로 바뀌어 홍조를 낸다는 우려는 고온·장기 보관 조건의 이야기로, 현대 제형에선 거의 의미가 없어요. 다만 저pH 비타민C와 동시 도포 시 일시적 홍조는 개인차로 있을 수 있어요.',
     recommendation:
@@ -70,6 +82,8 @@ export const INTERACTIONS: IngredientInteraction[] = [
     ingredientA: 'ascorbic-acid',
     ingredientB: 'tocopherol',
     severity: 'good',
+    separation: 'none',
+    sourceIds: ['pullar-2017', 'pinnell-2001', 'telang-2013', 'lin-2005'],
     reason:
       '수용성 비타민C와 지용성 비타민E는 서로를 재생시키는 항산화 네트워크를 이루며, 함께 배합하면 광보호 효과가 상승하는 것으로 보고돼요 (Lin et al., 2003).',
     recommendation:
@@ -80,6 +94,8 @@ export const INTERACTIONS: IngredientInteraction[] = [
     ingredientA: 'ascorbic-acid',
     ingredientB: 'ferulic-acid',
     severity: 'good',
+    separation: 'none',
+    sourceIds: ['pullar-2017', 'pinnell-2001', 'telang-2013', 'lin-2005'],
     reason:
       '페룰릭애씨드는 비타민C·E 제형의 안정성을 높이고, 세 성분 조합 시 광보호 효과가 단독 대비 크게 증가한 것으로 보고돼요 (Lin et al., 2005).',
     recommendation:
@@ -90,6 +106,8 @@ export const INTERACTIONS: IngredientInteraction[] = [
     ingredientA: 'hyaluronic-acid',
     ingredientB: 'ceramide',
     severity: 'good',
+    separation: 'none',
+    sourceIds: ['cir', 'kcia-dict', 'coderch-2003'],
     reason:
       '히알루론산은 수분을 끌어당기는 휴멕턴트이고 세라마이드는 각질층 지질로 그 수분이 빠져나가지 않게 붙잡아요. 역할이 다르게 보완되는 대표 조합이에요.',
     recommendation:
@@ -100,6 +118,8 @@ export const INTERACTIONS: IngredientInteraction[] = [
     ingredientA: 'niacinamide',
     ingredientB: 'hyaluronic-acid',
     severity: 'good',
+    separation: 'none',
+    sourceIds: ['wohlrab-2014', 'bissett-2005', 'cir', 'kcia-dict'],
     reason:
       '나이아신아마이드는 pH에 덜 민감하고 자극이 낮은 편이라 보습 성분과 부담 없이 어울려요. 장벽 지질 합성을 돕는 작용과 수분 공급이 겹쳐 시너지로 언급돼요.',
     recommendation:
@@ -110,6 +130,8 @@ export const INTERACTIONS: IngredientInteraction[] = [
     ingredientA: 'niacinamide',
     ingredientB: 'retinol',
     severity: 'good',
+    separation: 'none',
+    sourceIds: ['wohlrab-2014', 'bissett-2005', 'mukherjee-2006', 'zasada-2019'],
     reason:
       '나이아신아마이드가 장벽 기능을 지지해 레티노이드 초기 자극(홍조·건조)을 줄이는 데 도움이 될 수 있다는 임상 보고가 있어요 (Draelos, Ertel & Berge, 2006).',
     recommendation:
@@ -120,6 +142,8 @@ export const INTERACTIONS: IngredientInteraction[] = [
     ingredientA: 'retinol',
     ingredientB: 'ceramide',
     severity: 'good',
+    separation: 'none',
+    sourceIds: ['mukherjee-2006', 'zasada-2019', 'coderch-2003'],
     reason:
       '레티놀은 초기에 경표피수분손실(TEWL)을 늘릴 수 있는데, 세라마이드가 각질층 지질을 보충해 그 건조·자극 부담을 완충하는 것으로 알려져 있어요.',
     recommendation:
@@ -130,6 +154,8 @@ export const INTERACTIONS: IngredientInteraction[] = [
     ingredientA: 'retinol',
     ingredientB: 'panthenol',
     severity: 'good',
+    separation: 'none',
+    sourceIds: ['mukherjee-2006', 'zasada-2019', 'ebner-2002'],
     reason:
       '판테놀은 피부에서 판토텐산으로 전환돼 장벽 회복과 진정에 관여해요. 레티놀 적응기의 건조·따가움을 완화하는 보조 성분으로 자주 조합돼요.',
     recommendation:
@@ -140,6 +166,8 @@ export const INTERACTIONS: IngredientInteraction[] = [
     ingredientA: 'retinol',
     ingredientB: 'peptides',
     severity: 'good',
+    separation: 'none',
+    sourceIds: ['mukherjee-2006', 'zasada-2019', 'cir'],
     reason:
       '레티놀과 펩타이드는 탄력 접근 경로가 달라 겹쳐도 자극이 늘지 않는 편이에요. 펩타이드는 pH에 덜 예민해 레티놀 제형과도 무난하게 어울려요.',
     recommendation:
@@ -150,6 +178,8 @@ export const INTERACTIONS: IngredientInteraction[] = [
     ingredientA: 'salicylic-acid',
     ingredientB: 'niacinamide',
     severity: 'good',
+    separation: 'none',
+    sourceIds: ['kornhauser-2010', 'aad-acne', 'wohlrab-2014', 'bissett-2005'],
     reason:
       'BHA가 모공 속 피지·각질을 관리하고, 나이아신아마이드가 피지 분비 조절과 장벽 지지를 맡아 트러블 경향 루틴에서 역할이 보완돼요. 나이아신아마이드가 BHA 자극을 완충한다는 언급도 있어요.',
     recommendation:
@@ -160,6 +190,8 @@ export const INTERACTIONS: IngredientInteraction[] = [
     ingredientA: 'centella',
     ingredientB: 'panthenol',
     severity: 'good',
+    separation: 'none',
+    sourceIds: ['bylka-2013', 'ebner-2002'],
     reason:
       '병풀 추출물(마데카소사이드 등)과 판테놀은 모두 진정·장벽 지지 목적으로 쓰이며 자극이 낮아 함께 배합돼도 부담이 거의 없는 조합이에요.',
     recommendation:
@@ -170,6 +202,8 @@ export const INTERACTIONS: IngredientInteraction[] = [
     ingredientA: 'niacinamide',
     ingredientB: 'panthenol',
     severity: 'good',
+    separation: 'none',
+    sourceIds: ['wohlrab-2014', 'bissett-2005', 'ebner-2002'],
     reason:
       '두 성분 모두 pH 의존성이 낮고 자극이 적은 편이에요. 나이아신아마이드의 장벽 지질 합성 지원과 판테놀의 보습·진정이 겹쳐 편안한 조합으로 알려져 있어요.',
     recommendation:
@@ -180,6 +214,8 @@ export const INTERACTIONS: IngredientInteraction[] = [
     ingredientA: 'alpha-arbutin',
     ingredientB: 'niacinamide',
     severity: 'good',
+    separation: 'none',
+    sourceIds: ['cir', 'kcia-dict', 'wohlrab-2014', 'bissett-2005'],
     reason:
       '알파-알부틴은 티로시나아제 활성에, 나이아신아마이드는 멜라노좀 전달에 관여해 톤 케어 경로가 달라요. 서로 다른 단계를 맡아 함께 배합되는 경우가 흔해요 (Hakozaki et al., 2002).',
     recommendation:
@@ -190,6 +226,8 @@ export const INTERACTIONS: IngredientInteraction[] = [
     ingredientA: 'tea-tree',
     ingredientB: 'salicylic-acid',
     severity: 'caution',
+    separation: 'day',
+    sourceIds: ['degroot-2016', 'sccs-ttol', 'kornhauser-2010', 'aad-acne'],
     reason:
       '티트리오일은 항균 목적 정유로 그 자체가 건조·감작 가능성이 있고, 살리실릭애씨드는 피지·각질을 녹여요. 같은 트러블 루틴에서 겹치면 건조함과 따가움이 늘 수 있어요.',
     recommendation:
@@ -200,6 +238,8 @@ export const INTERACTIONS: IngredientInteraction[] = [
     ingredientA: 'tea-tree',
     ingredientB: 'retinol',
     severity: 'caution',
+    separation: 'day',
+    sourceIds: ['degroot-2016', 'sccs-ttol', 'mukherjee-2006', 'zasada-2019'],
     reason:
       '레티놀로 장벽이 얇아진 상태에서 정유 성분이 겹치면 접촉 감작이나 자극 반응 확률이 높아질 수 있어요. 티트리오일은 산화되면 감작성이 더 커지는 것으로 알려져 있어요 (SCCS Opinion, 2008).',
     recommendation:
@@ -210,6 +250,8 @@ export const INTERACTIONS: IngredientInteraction[] = [
     ingredientA: 'ascorbic-acid',
     ingredientB: 'glycolic-acid',
     severity: 'caution',
+    separation: 'time',
+    sourceIds: ['pinnell-2001', 'telang-2013', 'kornhauser-2010', 'mfds-aha'],
     reason:
       '둘 다 pH 3~4 부근의 낮은 산성에서 작동하는 성분이라, 같은 단계에 겹치면 각질층에 산성 부하가 누적돼 따끔함과 홍조가 겹칠 수 있어요.',
     recommendation:
@@ -220,6 +262,8 @@ export const INTERACTIONS: IngredientInteraction[] = [
     ingredientA: 'retinol',
     ingredientB: 'bakuchiol',
     severity: 'caution',
+    separation: 'day',
+    sourceIds: ['mukherjee-2006', 'zasada-2019', 'cir'],
     reason:
       '바쿠치올은 레티놀과 구조는 다르지만 유사한 유전자 발현 경로에 작용하는 것으로 보고돼요 (Chaudhuri & Bojanowski, 2014). 같은 방향의 성분을 겹치면 자극이 늘 수 있어요.',
     recommendation:
@@ -230,6 +274,8 @@ export const INTERACTIONS: IngredientInteraction[] = [
     ingredientA: 'urea',
     ingredientB: 'glycolic-acid',
     severity: 'caution',
+    separation: 'day',
+    sourceIds: ['cir', 'kornhauser-2010', 'mfds-aha'],
     reason:
       '우레아는 10% 이상 고농도에서 각질 연화(케라톨리틱) 작용이 나타나고, 글라이콜릭애씨드도 각질 결합을 느슨하게 해요. 두 작용이 겹치면 따끔함이 생길 수 있어요.',
     recommendation:
@@ -240,6 +286,8 @@ export const INTERACTIONS: IngredientInteraction[] = [
     ingredientA: 'salicylic-acid',
     ingredientB: 'lactic-acid',
     severity: 'caution',
+    separation: 'day',
+    sourceIds: ['kornhauser-2010', 'aad-acne', 'mfds-aha'],
     reason:
       'BHA와 AHA는 작용 위치(모공 속 vs 표면)가 달라도 모두 각질 결합을 느슨하게 해요. 함께 쓰면 각질 관리가 과해져 건조·민감 부담이 커질 수 있어요.',
     recommendation:
@@ -250,6 +298,8 @@ export const INTERACTIONS: IngredientInteraction[] = [
     ingredientA: 'azelaic-acid',
     ingredientB: 'niacinamide',
     severity: 'good',
+    separation: 'none',
+    sourceIds: ['aad-acne', 'cir', 'wohlrab-2014', 'bissett-2005'],
     reason:
       '아젤라익애씨드는 티로시나아제 억제와 항염 작용, 나이아신아마이드는 멜라노좀 전달 억제와 피지 조절로 경로가 달라 톤·트러블 루틴에서 보완적으로 쓰여요.',
     recommendation:
@@ -260,6 +310,8 @@ export const INTERACTIONS: IngredientInteraction[] = [
     ingredientA: 'tranexamic-acid',
     ingredientB: 'niacinamide',
     severity: 'good',
+    separation: 'none',
+    sourceIds: ['cir', 'wohlrab-2014', 'bissett-2005'],
     reason:
       '트라넥사믹애씨드는 플라스민 경로를 통한 멜라닌 자극 신호를, 나이아신아마이드는 멜라노좀 전달을 줄이는 것으로 알려져 있어요. 색소 흔적 루틴의 대표 조합이에요.',
     recommendation:
@@ -270,6 +322,8 @@ export const INTERACTIONS: IngredientInteraction[] = [
     ingredientA: 'ceramide',
     ingredientB: 'cholesterol',
     severity: 'good',
+    separation: 'none',
+    sourceIds: ['coderch-2003'],
     reason:
       '각질층 지질은 세라마이드·콜레스테롤·지방산으로 이뤄지며, 세 가지를 함께 보충할 때 장벽 회복이 빨라진 것으로 보고돼요 (Man, Feingold & Elias, 1993).',
     recommendation:
@@ -280,6 +334,8 @@ export const INTERACTIONS: IngredientInteraction[] = [
     ingredientA: 'adenosine',
     ingredientB: 'peptides',
     severity: 'good',
+    separation: 'none',
+    sourceIds: ['mfds-ad', 'cir'],
     reason:
       '아데노신은 식약처 고시 주름 기능성 성분이고 펩타이드는 신호 전달로 탄력을 돕는 성분이에요. 둘 다 자극이 낮고 pH 제약이 적어 함께 쓰기 편해요.',
     recommendation:
@@ -290,6 +346,8 @@ export const INTERACTIONS: IngredientInteraction[] = [
     ingredientA: 'centella',
     ingredientB: 'retinol',
     severity: 'good',
+    separation: 'none',
+    sourceIds: ['bylka-2013', 'mukherjee-2006', 'zasada-2019'],
     reason:
       '병풀의 마데카소사이드·아시아티코사이드는 염증 신호를 낮추고 장벽 회복을 돕는 것으로 보고돼, 레티놀 적응기의 홍조·건조 부담을 덜어주는 구성으로 자주 쓰여요.',
     recommendation:
@@ -300,6 +358,8 @@ export const INTERACTIONS: IngredientInteraction[] = [
     ingredientA: 'squalane',
     ingredientB: 'retinol',
     severity: 'good',
+    separation: 'none',
+    sourceIds: ['cir', 'mukherjee-2006', 'zasada-2019'],
     reason:
       '스쿠알란은 피부 피지 성분과 유사한 구조의 안정적인 오일로, 레티놀 사용 초기의 건조함과 벗겨짐을 완충해요. 산화 안정성이 높아 레티놀 제형 안정에도 유리해요.',
     recommendation:
@@ -310,6 +370,8 @@ export const INTERACTIONS: IngredientInteraction[] = [
     ingredientA: 'panthenol',
     ingredientB: 'salicylic-acid',
     severity: 'good',
+    separation: 'none',
+    sourceIds: ['ebner-2002', 'kornhauser-2010', 'aad-acne'],
     reason:
       '살리실릭애씨드의 각질 용해로 생길 수 있는 건조·당김을 판테놀의 보습·진정이 보완해요. 판테놀은 pH 제약이 적어 BHA 제형과도 무난하게 어울려요.',
     recommendation:
@@ -320,6 +382,8 @@ export const INTERACTIONS: IngredientInteraction[] = [
     ingredientA: 'zinc-pca',
     ingredientB: 'niacinamide',
     severity: 'good',
+    separation: 'none',
+    sourceIds: ['cir', 'wohlrab-2014', 'bissett-2005'],
     reason:
       '징크PCA의 수렴·피지 조절과 나이아신아마이드의 피지 분비 감소 작용이 겹쳐, 번들거림 관리 쪽에서 함께 배합되는 경우가 많아요 (Draelos et al., 2006).',
     recommendation:
@@ -334,6 +398,8 @@ export const INTERACTIONS: IngredientInteraction[] = [
     ingredientA: 'retinol',
     ingredientB: 'benzoyl-peroxide',
     severity: 'high_caution',
+    separation: 'time',
+    sourceIds: ['martin-1998', 'mukherjee-2006', 'zasada-2019', 'aad-acne'],
     reason:
       '벤조일퍼옥사이드는 강한 산화제라 레티놀을 산화시켜 활성을 떨어뜨릴 수 있어요. 트레티노인이 BP와 접촉 시 수 시간 내 크게 분해된 보고가 있고(Martin et al., 1998), 두 성분의 자극도 누적돼요.',
     recommendation:
@@ -344,6 +410,8 @@ export const INTERACTIONS: IngredientInteraction[] = [
     ingredientA: 'ascorbic-acid',
     ingredientB: 'benzoyl-peroxide',
     severity: 'high_caution',
+    separation: 'time',
+    sourceIds: ['buettner-1996', 'pinnell-2001', 'telang-2013', 'aad-acne'],
     reason:
       '순수 비타민C는 산화에 매우 취약한 환원제이고, 벤조일퍼옥사이드는 산화제예요. 같은 단계에 겹치면 비타민C가 빠르게 산화돼 항산화 효과를 기대하기 어려워요.',
     recommendation:
@@ -354,6 +422,8 @@ export const INTERACTIONS: IngredientInteraction[] = [
     ingredientA: 'ascorbic-acid',
     ingredientB: 'copper-peptide',
     severity: 'caution',
+    separation: 'time',
+    sourceIds: ['pinnell-2001', 'telang-2013', 'buettner-1996', 'cir'],
     reason:
       '구리 이온은 아스코빅애씨드의 산화를 촉매하는 전이금속으로 알려져 있어요 (Buettner & Jurkiewicz, 1996). 저pH 비타민C가 구리펩타이드 복합체를 불안정하게 할 가능성도 언급돼요.',
     recommendation:
@@ -364,6 +434,8 @@ export const INTERACTIONS: IngredientInteraction[] = [
     ingredientA: 'retinal',
     ingredientB: 'glycolic-acid',
     severity: 'caution',
+    separation: 'day',
+    sourceIds: ['zasada-2019', 'mukherjee-2006', 'kornhauser-2010', 'mfds-aha'],
     reason:
       '레티날은 레티놀보다 레티노산 전환이 빠르고 강해요. 글라이콜릭애씨드의 각질 용해가 겹치면 A-반응(건조·벗겨짐·홍조)이 더 뚜렷해질 수 있어요.',
     recommendation:
@@ -374,6 +446,8 @@ export const INTERACTIONS: IngredientInteraction[] = [
     ingredientA: 'retinal',
     ingredientB: 'salicylic-acid',
     severity: 'caution',
+    separation: 'day',
+    sourceIds: ['zasada-2019', 'mukherjee-2006', 'kornhauser-2010', 'aad-acne'],
     reason:
       '레티날의 강한 리뉴얼 작용과 BHA의 유용성 각질 용해가 겹치면 자극과 건조가 누적될 수 있어요. 트러블 루틴에서 흔히 겹치는 조합이라 특히 살펴볼 필요가 있어요.',
     recommendation:
@@ -384,6 +458,8 @@ export const INTERACTIONS: IngredientInteraction[] = [
     ingredientA: 'hpr',
     ingredientB: 'glycolic-acid',
     severity: 'caution',
+    separation: 'day',
+    sourceIds: ['zasada-2019', 'kornhauser-2010', 'mfds-aha'],
     reason:
       'HPR은 레티노산 수용체에 직접 결합하는 에스터로 레티놀보다 자극이 완만한 편이지만, 여전히 각질 턴오버를 촉진해요. AHA와 겹치면 건조·따가움이 늘 수 있어요.',
     recommendation:
@@ -394,6 +470,8 @@ export const INTERACTIONS: IngredientInteraction[] = [
     ingredientA: 'glycolic-acid',
     ingredientB: 'lactic-acid',
     severity: 'caution',
+    separation: 'day',
+    sourceIds: ['kornhauser-2010', 'mfds-aha'],
     reason:
       '둘 다 AHA로 같은 방식(각질세포 간 결합 약화)으로 작용해요. 두 제품에 나눠 들어 있으면 총 산 농도가 의도치 않게 높아져 pH 부하와 자극이 누적될 수 있어요.',
     recommendation:
@@ -404,6 +482,8 @@ export const INTERACTIONS: IngredientInteraction[] = [
     ingredientA: 'tea-tree',
     ingredientB: 'benzoyl-peroxide',
     severity: 'caution',
+    separation: 'day',
+    sourceIds: ['degroot-2016', 'sccs-ttol', 'aad-acne'],
     reason:
       '두 성분 모두 여드름 균을 겨냥하지만 각각 건조·자극 부담이 있어요. 티트리오일 5%와 BP 5% 비교 연구에서 티트리도 자극 보고가 있었고(Bassett et al., 1990), 겹치면 부담이 누적돼요.',
     recommendation:
@@ -414,6 +494,8 @@ export const INTERACTIONS: IngredientInteraction[] = [
     ingredientA: 'azelaic-acid',
     ingredientB: 'retinol',
     severity: 'caution',
+    separation: 'day',
+    sourceIds: ['aad-acne', 'cir', 'mukherjee-2006', 'zasada-2019'],
     reason:
       '아젤라익애씨드는 pH 4~5의 약산성 제형이 흔하고 초반 따끔함이 있어요. 레티놀 적응기와 겹치면 홍조·따가움이 함께 커질 수 있지만, 적응 후에는 함께 쓰이는 조합이기도 해요.',
     recommendation:
@@ -424,6 +506,8 @@ export const INTERACTIONS: IngredientInteraction[] = [
     ingredientA: 'alpha-arbutin',
     ingredientB: 'ascorbic-acid',
     severity: 'neutral',
+    separation: 'none',
+    sourceIds: ['cir', 'kcia-dict', 'pinnell-2001', 'telang-2013'],
     reason:
       '알파-알부틴은 넓은 pH 범위에서 안정적이라 저pH 비타민C와 함께 있어도 서로를 방해하지 않아요. 티로시나아제 억제와 멜라닌 환원으로 경로가 달라 함께 배합되기도 해요.',
     recommendation:
@@ -434,6 +518,8 @@ export const INTERACTIONS: IngredientInteraction[] = [
     ingredientA: 'gluconolactone',
     ingredientB: 'retinol',
     severity: 'caution',
+    separation: 'day',
+    sourceIds: ['kornhauser-2010', 'mukherjee-2006', 'zasada-2019'],
     reason:
       '글루코노락톤(PHA)은 분자가 커서 AHA보다 천천히 작용하고 보습감도 있지만, 각질 결합을 느슨하게 하는 계열인 건 같아요. 레티놀과 겹치면 부담이 완만하게 누적될 수 있어요.',
     recommendation:
@@ -444,6 +530,8 @@ export const INTERACTIONS: IngredientInteraction[] = [
     ingredientA: 'urea',
     ingredientB: 'retinol',
     severity: 'caution',
+    separation: 'day',
+    sourceIds: ['cir', 'kornhauser-2010', 'mukherjee-2006', 'zasada-2019'],
     reason:
       '우레아는 10% 이상에서 각질 연화 작용이 나타나 레티놀의 리뉴얼과 겹치면 벗겨짐·따가움이 늘 수 있어요. 반면 5% 이하 저농도 우레아는 보습 목적이라 레티놀 건조를 보완하기도 해요.',
     recommendation:
@@ -454,6 +542,8 @@ export const INTERACTIONS: IngredientInteraction[] = [
     ingredientA: 'sulfur',
     ingredientB: 'benzoyl-peroxide',
     severity: 'caution',
+    separation: 'time',
+    sourceIds: ['aad-acne'],
     reason:
       '유황과 벤조일퍼옥사이드는 둘 다 트러블 루틴의 항균 성분이지만 각각 건조·벗겨짐 부담이 있어요. 겹치면 피지가 과도하게 줄어 장벽 건조가 누적될 수 있어요.',
     recommendation:
@@ -464,6 +554,8 @@ export const INTERACTIONS: IngredientInteraction[] = [
     ingredientA: 'lavender-oil',
     ingredientB: 'tea-tree',
     severity: 'caution',
+    separation: 'swap',
+    sourceIds: ['degroot-2016', 'sccs-ttol'],
     reason:
       '라벤더오일의 리날룰과 티트리오일의 테르펜 성분은 공기 중 산화되면 접촉 감작 물질이 되는 것으로 알려져 있어요 (SCCS Opinion, 2012). 정유가 겹치면 감작 노출량이 누적돼요.',
     recommendation:
@@ -474,6 +566,8 @@ export const INTERACTIONS: IngredientInteraction[] = [
     ingredientA: 'fragrance',
     ingredientB: 'retinol',
     severity: 'caution',
+    separation: 'swap',
+    sourceIds: ['kligman-1986', 'johansen-2003', 'mukherjee-2006', 'zasada-2019'],
     reason:
       '레티놀 적응기엔 장벽이 일시적으로 얇아져 외부 물질 침투가 늘어요. 이 상태에서 향료(파르퓸)의 감작 성분에 노출되면 접촉 알레르기 확률이 높아질 수 있어요.',
     recommendation:
@@ -484,6 +578,8 @@ export const INTERACTIONS: IngredientInteraction[] = [
     ingredientA: 'alcohol-denat',
     ingredientB: 'retinol',
     severity: 'caution',
+    separation: 'swap',
+    sourceIds: ['kligman-1986', 'draelos-2005', 'cir', 'mukherjee-2006'],
     reason:
       '변성알코올이 상위에 배합된 제형은 각질층 지질을 일부 녹여 장벽을 약화시킬 수 있어요. 레티놀로 이미 예민해진 상태에서 겹치면 건조·따가움이 커질 수 있어요.',
     recommendation:
@@ -494,6 +590,8 @@ export const INTERACTIONS: IngredientInteraction[] = [
     ingredientA: 'alcohol-denat',
     ingredientB: 'glycolic-acid',
     severity: 'caution',
+    separation: 'swap',
+    sourceIds: ['draelos-2005', 'cir', 'kornhauser-2010', 'mfds-aha'],
     reason:
       '글라이콜릭애씨드가 각질층을 느슨하게 한 상태에서 고함량 알코올이 지질을 씻어내면 경표피수분손실이 함께 늘 수 있어요. AHA 토너에 알코올이 함께 든 경우도 있으니 전성분을 확인해보세요.',
     recommendation:
@@ -504,6 +602,8 @@ export const INTERACTIONS: IngredientInteraction[] = [
     ingredientA: 'ceramide',
     ingredientB: 'fatty-acids',
     severity: 'good',
+    separation: 'none',
+    sourceIds: ['coderch-2003'],
     reason:
       '각질층 지질은 세라마이드·콜레스테롤·지방산이 약 3:1:1 비율을 이룰 때 장벽 회복에 가장 유리한 것으로 보고돼요 (Man et al., 1996). 리놀레익애씨드는 세라마이드 합성 재료이기도 해요.',
     recommendation:
@@ -514,6 +614,8 @@ export const INTERACTIONS: IngredientInteraction[] = [
     ingredientA: 'hyaluronic-acid',
     ingredientB: 'glycerin',
     severity: 'good',
+    separation: 'none',
+    sourceIds: ['cir', 'kcia-dict'],
     reason:
       '글리세린은 각질층 깊이 스며드는 소분자 휴멕턴트, 히알루론산은 표면에서 수분막을 만드는 고분자 휴멕턴트예요. 층이 달라 함께 배합될 때 보습 지속성이 좋아져요.',
     recommendation:
@@ -524,6 +626,8 @@ export const INTERACTIONS: IngredientInteraction[] = [
     ingredientA: 'panthenol',
     ingredientB: 'madecassoside',
     severity: 'good',
+    separation: 'none',
+    sourceIds: ['ebner-2002', 'bylka-2013'],
     reason:
       '마데카소사이드는 병풀의 대표 진정 활성 성분으로 염증 신호를 낮추고, 판테놀은 장벽 회복과 수분 유지를 도와요. 둘 다 저자극이라 진정 라인에서 함께 배합되는 조합이에요.',
     recommendation:
@@ -534,6 +638,8 @@ export const INTERACTIONS: IngredientInteraction[] = [
     ingredientA: 'centella',
     ingredientB: 'salicylic-acid',
     severity: 'good',
+    separation: 'none',
+    sourceIds: ['bylka-2013', 'kornhauser-2010', 'aad-acne'],
     reason:
       'BHA의 각질 용해 뒤 생길 수 있는 홍조·따가움을 병풀 추출물의 진정 작용이 완충해요. 트러블 루틴에서 BHA와 시카가 짝으로 배합되는 이유예요.',
     recommendation:
@@ -544,6 +650,8 @@ export const INTERACTIONS: IngredientInteraction[] = [
     ingredientA: 'zinc-oxide',
     ingredientB: 'niacinamide',
     severity: 'neutral',
+    separation: 'none',
+    sourceIds: ['mfds-safety', 'wohlrab-2014', 'bissett-2005'],
     reason:
       '징크옥사이드는 무기 자외선 차단제로 피부 표면에 머물고, 나이아신아마이드는 수용성 활성 성분이라 서로 화학적으로 간섭하지 않아요. 둘 다 진정 목적으로도 쓰여 함께 있어도 무난해요.',
     recommendation:
@@ -554,6 +662,8 @@ export const INTERACTIONS: IngredientInteraction[] = [
     ingredientA: 'retinal',
     ingredientB: 'benzoyl-peroxide',
     severity: 'high_caution',
+    separation: 'time',
+    sourceIds: ['martin-1998', 'zasada-2019', 'mukherjee-2006', 'aad-acne'],
     reason:
       '레티날은 알데하이드 구조라 산화에 특히 민감해요. 산화제인 벤조일퍼옥사이드와 겹치면 활성 저하가 빠르고, 레티날 자체의 강한 A-반응과 BP 자극이 동시에 누적될 수 있어요.',
     recommendation:
@@ -564,6 +674,8 @@ export const INTERACTIONS: IngredientInteraction[] = [
     ingredientA: 'ascorbic-acid',
     ingredientB: 'retinal',
     severity: 'high_caution',
+    separation: 'time',
+    sourceIds: ['pinnell-2001', 'telang-2013', 'zasada-2019', 'mukherjee-2006'],
     reason:
       '레티날은 레티노산까지 한 단계만 거치면 돼 레티놀보다 전환이 빠르고 작용이 뚜렷한 편이에요 (Sorg et al., 2006). 여기에 pH 3.5 이하 비타민C의 산성 부하가 겹치면 홍조·따가움이 크게 누적될 수 있어요.',
     recommendation:
@@ -574,6 +686,8 @@ export const INTERACTIONS: IngredientInteraction[] = [
     ingredientA: 'benzoyl-peroxide',
     ingredientB: 'glycolic-acid',
     severity: 'high_caution',
+    separation: 'time',
+    sourceIds: ['aad-acne', 'kornhauser-2010', 'mfds-aha'],
     reason:
       '벤조일퍼옥사이드는 단독으로도 자극성 접촉피부염이 흔한 성분이에요. 글라이콜릭애씨드가 각질층을 느슨하게 만든 상태에선 BP 침투와 산화 스트레스가 커져 자극이 크게 누적될 수 있어요.',
     recommendation:
@@ -584,6 +698,8 @@ export const INTERACTIONS: IngredientInteraction[] = [
     ingredientA: 'retinol',
     ingredientB: 'retinal',
     severity: 'high_caution',
+    separation: 'swap',
+    sourceIds: ['kligman-1986', 'mukherjee-2006', 'zasada-2019'],
     reason:
       '두 성분은 모두 피부에서 레티노산으로 전환되는 같은 경로의 레티노이드예요. 다른 제품으로 겹쳐 쓰면 의도치 않게 총 레티노이드 용량이 높아져 A-반응(건조·벗겨짐·홍조)이 강하게 올 수 있어요 (Kligman, 1986).',
     recommendation:
@@ -594,6 +710,8 @@ export const INTERACTIONS: IngredientInteraction[] = [
     ingredientA: 'benzoyl-peroxide',
     ingredientB: 'salicylic-acid',
     severity: 'caution',
+    separation: 'time',
+    sourceIds: ['aad-acne', 'kornhauser-2010'],
     reason:
       '둘 다 트러블 루틴의 핵심 성분이지만 각각 건조·벗겨짐이 흔해요. 레이브온 제형으로 동시에 겹치면 자극 부담이 누적될 수 있어요. 다만 세안제와 레이브온으로 역할을 나누면 함께 쓰이기도 해요.',
     recommendation:
@@ -604,6 +722,8 @@ export const INTERACTIONS: IngredientInteraction[] = [
     ingredientA: 'ascorbic-acid',
     ingredientB: 'salicylic-acid',
     severity: 'caution',
+    separation: 'time',
+    sourceIds: ['pinnell-2001', 'telang-2013', 'kornhauser-2010', 'aad-acne'],
     reason:
       '순수 비타민C(pH 3.5 이하)와 살리실릭애씨드(pH 3~4)는 둘 다 낮은 pH에서 작동해요. 같은 단계에 겹치면 산성 부하가 누적돼 따끔함과 홍조가 겹칠 수 있어요.',
     recommendation:
@@ -614,6 +734,8 @@ export const INTERACTIONS: IngredientInteraction[] = [
     ingredientA: 'avobenzone',
     ingredientB: 'zinc-oxide',
     severity: 'neutral',
+    separation: 'order',
+    sourceIds: ['mfds-safety'],
     reason:
       '코팅되지 않은 산화아연·티타늄이 같은 제형 안에서 아보벤존 광분해를 촉진할 수 있다는 보고가 있지만, 시판 제품의 무기 필터는 대부분 코팅 처리돼 있어 별개 제품을 겹쳐 발라도 큰 의미는 없어요.',
     recommendation:
