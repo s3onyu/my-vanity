@@ -307,3 +307,45 @@ create or replace view public.board_reports_summary as
   join public.board_reports r on r.post_id = p.id
   group by p.id, p.title, p.author_nickname
   order by count(r.id) desc, max(r.created_at) desc;
+
+-- ===========================================================================
+--  사용자 피드백 반영 (피부 유형 검사 · 사용 빈도 · 가격 · 피드 개인화 · 이메일 계정)
+--  이미 운영 중인 프로젝트에서도 이 파일을 그대로 다시 실행하면 된다
+--  (모두 add column if not exists / create table if not exists).
+-- ===========================================================================
+
+-- 피부 유형 검사 결과(4축 코드)와 커뮤니티 피드 관심 분야 비중
+alter table public.profiles add column if not exists skin_code    text;
+alter table public.profiles add column if not exists skin_code_at timestamptz;
+alter table public.profiles add column if not exists feed_topics  jsonb;
+
+-- 제품별 사용 빈도 — {"kind":"daily"} | {"kind":"alt"} | {"kind":"weekdays","days":[1,4]}
+alter table public.user_routines add column if not exists frequency jsonb;
+
+-- 직접 등록한 제품의 용량 (1ml 당 가격 계산용)
+alter table public.user_products add column if not exists volume numeric;
+
+-- 내가 적어 둔 제품 가격 — 본인만 읽기/쓰기
+create table if not exists public.user_product_prices (
+  user_id    uuid not null references auth.users(id) on delete cascade,
+  product_id text not null,
+  price      integer not null check (price > 0 and price <= 10000000),
+  volume     numeric check (volume is null or volume > 0),
+  shop       text,
+  updated_at timestamptz not null default now(),
+  primary key (user_id, product_id)
+);
+
+alter table public.user_product_prices enable row level security;
+drop policy if exists "user_product_prices own" on public.user_product_prices;
+create policy "user_product_prices own" on public.user_product_prices for all
+  using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- ---------------------------------------------------------------------------
+--  이메일 계정 (요청 9번)
+--  익명 계정에 이메일·비밀번호를 붙이는 방식이라 user_id 가 그대로 유지된다 → 기존 기록이 남는다.
+--  대시보드에서 아래 두 가지를 켜 두어야 한다:
+--    Authentication > Providers > Email          (회원가입·로그인)
+--    Authentication > Providers > Anonymous      (첫 방문 익명 세션 — 이미 사용 중)
+--  확인 메일을 쓰지 않으려면 Email 설정의 "Confirm email" 을 끄면 된다.
+-- ---------------------------------------------------------------------------

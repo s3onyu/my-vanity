@@ -31,6 +31,35 @@ export type ColorTag = 'rose' | 'mint' | 'sky' | 'butter' | 'lilac' | 'gold' | '
 
 export type EvidenceLevel = 'high' | 'moderate' | 'limited';
 
+/** 근거 자료의 종류 — 화면에 아이콘·라벨로 구분해 보여준다 */
+export type SourceKind = 'paper' | 'authority' | 'guideline' | 'db';
+
+/** 성분·조합 판단의 근거 자료 한 건 */
+export interface SourceRef {
+  id: string;
+  kind: SourceKind;
+  /** 짧은 이름 (예: 식약처 화장품 안전기준) */
+  label: string;
+  /** 어떤 내용을 담고 있는지 한 줄 */
+  detail: string;
+  /** 발행 기관·저자 */
+  publisher: string;
+  /** 연도 (없으면 수시 개정 자료) */
+  year?: number;
+  url?: string;
+}
+
+/** 주의 조합을 나눠 쓰는 방법 */
+export type SeparationKind =
+  | 'time' // 아침/저녁으로 시간대를 나눈다
+  | 'day' // 날짜를 번갈아 쓴다
+  | 'order' // 같은 시간대라도 바르는 순서만 지키면 된다
+  | 'swap' // 하나를 다른 제품으로 바꾸는 편이 낫다
+  | 'none'; // 나눠 쓸 필요 없음
+
+/** 성분을 주로 쓰는 시간대 */
+export type TimeSlot = 'AM' | 'PM' | 'any';
+
 /** 성분 부가 태그 — 엔진이 향료/에센셜오일 누적 노출 등을 계산할 때 사용 */
 export type IngredientTag = 'fragrance' | 'essential-oil' | 'active' | 'filter';
 
@@ -90,6 +119,8 @@ export interface Product {
   custom?: boolean;
   /** 사용자가 올린 제품 사진 (리사이즈된 data URL) */
   imageUrl?: string | null;
+  /** 용량 (ml 또는 g) — 가격을 입력하면 1ml 당 가격을 계산한다 */
+  volume?: number | null;
 }
 
 export type InteractionSeverity = 'good' | 'neutral' | 'caution' | 'high_caution';
@@ -101,6 +132,10 @@ export interface IngredientInteraction {
   severity: InteractionSeverity;
   reason: string;
   recommendation: string;
+  /** 이 판단의 근거 자료 (SOURCES 의 id 목록) */
+  sourceIds?: string[];
+  /** 나눠 쓰는 방법 — 엔진이 시간대·순서 추천을 만들 때 쓴다 */
+  separation?: SeparationKind;
 }
 
 // ---------------------------------------------------------------------------
@@ -116,9 +151,46 @@ export interface Profile {
   agreedAt?: string | null;
   /** 동의한 약관 버전 — 약관이 바뀌면 다시 받는다 */
   agreedVersion?: string | null;
+  /** 피부 유형 검사(4축) 결과 코드 — 예: 'DSPW' */
+  skinCode?: string | null;
+  /** 검사를 마친 시각 */
+  skinCodeAt?: string | null;
+  /** 커뮤니티 피드의 관심 분야별 노출 비중 */
+  feedTopics?: Partial<Record<FeedTopicId, FeedWeight>> | null;
 }
 
+// ---------------------------------------------------------------------------
+//  커뮤니티 피드 개인화
+// ---------------------------------------------------------------------------
+
+export type FeedTopicId =
+  | 'hydration' // 보습·건조
+  | 'soothing' // 진정·민감
+  | 'exfoliation' // 각질·모공
+  | 'trouble' // 트러블
+  | 'tone' // 톤·잡티
+  | 'aging' // 탄력·주름
+  | 'eye-makeup' // 아이 메이크업
+  | 'base-makeup' // 베이스 메이크업
+  | 'cheek-makeup' // 블러셔·컨투어
+  | 'ingredient' // 성분 공부
+  | 'value'; // 가성비·추천
+
+/** 0 = 안 보기, 1 = 보통, 2 = 우선 보기 */
+export type FeedWeight = 0 | 1 | 2;
+
 export type RoutineType = 'AM' | 'PM';
+
+/**
+ * 제품을 얼마나 자주 쓰는지.
+ * - daily    매일
+ * - alt      격일 (사용 시작일 기준 하루 걸러)
+ * - weekdays 고른 요일에만 (0 = 일요일 … 6 = 토요일)
+ */
+export type RoutineFrequency =
+  | { kind: 'daily' }
+  | { kind: 'alt' }
+  | { kind: 'weekdays'; days: number[] };
 
 export interface RoutineItem {
   id: string;
@@ -127,6 +199,20 @@ export interface RoutineItem {
   sortOrder: number;
   /** YYYY-MM-DD */
   startedAt: string;
+  /** 사용 빈도 — 없으면 매일로 본다 */
+  frequency?: RoutineFrequency | null;
+}
+
+/** 내가 적어 둔 제품 가격 */
+export interface ProductPrice {
+  productId: string;
+  /** 원 */
+  price: number;
+  /** 용량 (ml 또는 g) — 있으면 1ml 당 가격을 계산한다 */
+  volume?: number | null;
+  /** 어디서 산 가격인지 (선택) */
+  shop?: string | null;
+  updatedAt: string;
 }
 
 /** 피부 기록 — 하루에 아침(AM)·저녁(PM) 각각 하나씩 남긴다 */

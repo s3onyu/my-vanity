@@ -1,4 +1,5 @@
-import type { BoardPost, PostReport, Product, Profile, ProductMatch, ReportReason, RoutineItem, SkinLog } from '@/types';
+import type { BoardPost, PostReport, Product, Profile, ProductMatch, ProductPrice, ReportReason, RoutineItem, SkinLog } from '@/types';
+import type { ServerSyncStatus } from './pendingSync';
 
 /** 한 사용자의 저장 데이터 묶음 */
 export interface UserData {
@@ -12,10 +13,14 @@ export interface UserData {
   productPhotos: Record<string, string>;
   /** 제품 id → 다른 사용자가 공유한 사진 URL (서버 모드에서만 채워짐) */
   sharedProductPhotos: Record<string, string>;
+  /** 제품 id → 내가 적어 둔 가격 */
+  prices: ProductPrice[];
   /** 내가 신고한 게시글 */
   reports: PostReport[];
   /** 내가 차단한 작성자 닉네임 */
   blockedAuthors: string[];
+  /** 서버 저장 상태 — 서버에 없는 칸, 이 기기에만 보관 중인 건수 (서버 모드에서만 채워짐) */
+  sync?: ServerSyncStatus;
 }
 
 export const EMPTY_USER_DATA: UserData = {
@@ -26,6 +31,7 @@ export const EMPTY_USER_DATA: UserData = {
   customProducts: [],
   productPhotos: {},
   sharedProductPhotos: {},
+  prices: [],
   reports: [],
   blockedAuthors: [],
 };
@@ -57,6 +63,10 @@ export interface Repository {
 
   upsertProductPhoto(productId: string, imageUrl: string): Promise<void>;
   deleteProductPhoto(productId: string): Promise<void>;
+
+  /** 내가 적어 둔 제품 가격 */
+  upsertProductPrice(price: ProductPrice): Promise<void>;
+  deleteProductPrice(productId: string): Promise<void>;
 
   /** 내 제품 사진을 다른 사용자에게도 공개 — 공개 URL 을 돌려준다 (로컬 모드는 지원하지 않음) */
   shareProductPhoto(productId: string, imageUrl: string): Promise<string>;

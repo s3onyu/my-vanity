@@ -7,15 +7,31 @@ import type {
   ProductCategory,
   Profile,
   ProductMatch,
+  ProductPrice,
   ReportReason,
+  RoutineFrequency,
   RoutineItem,
   RoutineType,
   SkinLog,
   SkinMetrics,
   SkinType,
   Verdict,
+  FeedTopicId,
+  FeedWeight,
 } from '@/types';
 import { ensureUserId, getSupabase } from '@/lib/supabase';
+import {
+  EMPTY_PENDING,
+  SavedOnDeviceOnly,
+  deviceStore,
+  mergePending,
+  pendingCount,
+  planUpload,
+  readPending,
+  writePending,
+  type MissingSchema,
+  type PendingData,
+} from './pendingSync';
 import type { Repository, UserData } from './repository';
 
 // ---------------------------------------------------------------------------
@@ -30,6 +46,9 @@ interface ProfileRow {
   created_at: string;
   agreed_at: string | null;
   agreed_version: string | null;
+  skin_code?: string | null;
+  skin_code_at?: string | null;
+  feed_topics?: Partial<Record<FeedTopicId, FeedWeight>> | null;
 }
 interface RoutineRow {
   id: string;
@@ -37,6 +56,15 @@ interface RoutineRow {
   product_id: string;
   sort_order: number;
   started_at: string;
+  frequency?: RoutineFrequency | null;
+}
+
+interface PriceRow {
+  product_id: string;
+  price: number;
+  volume: number | null;
+  shop: string | null;
+  updated_at: string;
 }
 interface LogRow {
   id: string;
@@ -88,6 +116,9 @@ const toProfile = (r: ProfileRow): Profile => ({
   createdAt: r.created_at,
   agreedAt: r.agreed_at ?? null,
   agreedVersion: r.agreed_version ?? null,
+  skinCode: r.skin_code ?? null,
+  skinCodeAt: r.skin_code_at ?? null,
+  feedTopics: r.feed_topics ?? null,
 });
 const toRoutine = (r: RoutineRow): RoutineItem => ({
   id: r.id,
@@ -95,6 +126,15 @@ const toRoutine = (r: RoutineRow): RoutineItem => ({
   productId: r.product_id,
   sortOrder: r.sort_order,
   startedAt: r.started_at,
+  frequency: r.frequency ?? null,
+});
+
+const toPrice = (r: PriceRow): ProductPrice => ({
+  productId: r.product_id,
+  price: r.price,
+  volume: r.volume,
+  shop: r.shop,
+  updatedAt: r.updated_at,
 });
 const toLog = (r: LogRow): SkinLog => ({
   id: r.id,
@@ -161,6 +201,45 @@ function check(ctx: string, error: { message: string } | null) {
   if (error) throw new Error(`${ctx}: ${error.message}`);
 }
 
+/**
+ * 새로 추가한 열·표가 아직 없는 프로젝트인지 (supabase/schema.sql 을 다시 실행하기 전).
+ * 이 경우에는 에러를 던지지 않고 그 값만 비워 둬서 앱이 멈추지 않게 한다.
+ */
+function isMissingSchema(error: { message?: string; code?: string } | null): boolean {
+  if (!error) return false;
+  // 42703 undefined_column · 42P01 undefined_table · PGRST204/205 스키마 캐시에 없음
+  if (['42703', '42P01', 'PGRST204', 'PGRST205'].includes(error.code ?? '')) return true;
+  const m = (error.message ?? '').toLowerCase();
+  return m.includes('does not exist') || m.includes('could not find') || m.includes('schema cache');
+}
+
+/** 스키마가 아직 없을 때만 조용히 넘어가고, 다른 에러는 그대로 알린다 */
+function checkSoft(ctx: string, error: { message?: string; code?: string } | null): boolean {
+  if (!error) return true;
+  if (isMissingSchema(error)) {
+    if (import.meta.env.DEV) console.warn(`[my-vanity] ${ctx}: supabase/schema.sql 을 다시 실행해 주세요 — ${error.message}`);
+    return false;
+  }
+  throw new Error(`${ctx}: ${error.message}`);
+}
+
+/** 도메인 → 행: profiles 의 새 열 */
+const profileExtraRow = (extra: { skinCode: string | null; skinCodeAt: string | null; feedTopics: Profile['feedTopics'] | null }) => ({
+  skin_code: extra.skinCode,
+  skin_code_at: extra.skinCodeAt,
+  feed_topics: extra.feedTopics ?? null,
+});
+
+/** 도메인 → 행: user_product_prices */
+const priceRow = (userId: string, price: ProductPrice) => ({
+  user_id: userId,
+  product_id: price.productId,
+  price: price.price,
+  volume: price.volume ?? null,
+  shop: price.shop ?? null,
+  updated_at: price.updatedAt,
+});
+
 /** data URL → Blob (Storage 업로드용) */
 function dataUrlToBlob(dataUrl: string): Blob {
   const [head, body] = dataUrl.split(',');
@@ -191,7 +270,7 @@ export function createSupabaseRepository(): Repository {
 
     async load(): Promise<UserData> {
       const id = await uid();
-      const [pr, rt, lg, mt, cp, ph, sh, rp, bl] = await Promise.all([
+      const [pr, rt, lg, mt, cp, ph, sh, rp, bl, pc, px] = await Promise.all([
         sb().from('profiles').select('*').eq('user_id', id).maybeSingle(),
         sb().from('user_routines').select('*').eq('user_id', id).order('sort_order'),
         sb().from('skin_logs').select('*').eq('user_id', id).order('date', { ascending: false }).order('period'),
@@ -201,6 +280,9 @@ export function createSupabaseRepository(): Repository {
         sb().from('shared_product_photos').select('product_id,image_url,created_at').order('created_at', { ascending: false }).limit(2000),
         sb().from('board_reports').select('*').eq('user_id', id),
         sb().from('user_blocks').select('blocked_nickname').eq('user_id', id),
+        sb().from('user_product_prices').select('product_id,price,volume,shop,updated_at').eq('user_id', id),
+        // 검사 코드·피드 설정 열이 있는지 — 프로필 행이 아직 없어도 알 수 있게 따로 물어본다
+        sb().from('profiles').select('skin_code,skin_code_at,feed_topics').limit(0),
       ]);
       check('profiles', pr.error);
       check('user_routines', rt.error);
@@ -211,6 +293,9 @@ export function createSupabaseRepository(): Repository {
       check('shared_product_photos', sh.error);
       check('board_reports', rp.error);
       check('user_blocks', bl.error);
+      // 가격 표와 검사 코드 열은 나중에 추가됐다 — 아직 없으면 그 값만 이 기기 보관분으로 채운다
+      const hasPrices = checkSoft('user_product_prices', pc.error);
+      const hasProfileExtra = checkSoft('profiles 검사 코드 열', px.error);
       const productPhotos: Record<string, string> = {};
       ((ph.data ?? []) as { product_id: string; image_url: string }[]).forEach((row) => {
         productPhotos[row.product_id] = row.image_url;
@@ -220,7 +305,7 @@ export function createSupabaseRepository(): Repository {
         // 최신순 정렬이므로 처음 만난 것이 그 제품의 대표 사진
         if (!sharedProductPhotos[row.product_id]) sharedProductPhotos[row.product_id] = row.image_url;
       });
-      return {
+      const loaded: UserData = {
         profile: pr.data ? toProfile(pr.data as ProfileRow) : null,
         routines: ((rt.data ?? []) as RoutineRow[]).map(toRoutine),
         logs: ((lg.data ?? []) as LogRow[]).map(toLog),
@@ -228,28 +313,78 @@ export function createSupabaseRepository(): Repository {
         customProducts: ((cp.data ?? []) as CustomProductRow[]).map(toCustomProduct),
         productPhotos,
         sharedProductPhotos,
+        prices: hasPrices ? ((pc.data ?? []) as PriceRow[]).map(toPrice) : [],
         reports: ((rp.data ?? []) as ReportRow[]).map(toReport),
         blockedAuthors: ((bl.data ?? []) as { blocked_nickname: string }[]).map((r) => r.blocked_nickname),
       };
+
+      // ---- 서버에 칸이 없어 이 기기에 보관해 둔 값: 칸이 생겼으면 올리고, 아니면 화면에만 얹는다
+      const pending = readPending(deviceStore(), id);
+      const plan = planUpload(loaded, pending, { profile: hasProfileExtra, prices: hasPrices });
+      const still: PendingData = plan.remaining;
+      let uploaded = 0;
+      if (plan.profileExtra) {
+        const { error } = await sb().from('profiles').update(profileExtraRow(plan.profileExtra)).eq('user_id', id);
+        if (error) still.profileExtra = plan.profileExtra;
+        else uploaded += 1;
+      }
+      if (plan.prices.length) {
+        const { error } = await sb()
+          .from('user_product_prices')
+          .upsert(plan.prices.map((p) => priceRow(id, p)), { onConflict: 'user_id,product_id' });
+        if (error) plan.prices.forEach((p) => (still.prices[p.productId] = p));
+        else uploaded += plan.prices.length;
+      }
+      writePending(deviceStore(), id, still);
+
+      const missing: MissingSchema[] = [];
+      if (!hasProfileExtra) missing.push('profile');
+      if (!hasPrices) missing.push('prices');
+      // 방금 올린 것과 아직 보관 중인 것 모두 화면에는 보여야 한다
+      const shown = mergePending(loaded, {
+        profileExtra: plan.profileExtra ?? still.profileExtra,
+        prices: { ...Object.fromEntries(plan.prices.map((p) => [p.productId, p])), ...still.prices },
+      });
+      return { ...shown, sync: { missing, pending: pendingCount(still), uploaded } };
     },
 
     async saveProfile(profile) {
       const id = await uid();
+      const base = {
+        user_id: id,
+        skin_type: profile.skinType,
+        concerns: profile.concerns,
+        nickname: profile.nickname,
+        created_at: profile.createdAt,
+        agreed_at: profile.agreedAt ?? null,
+        agreed_version: profile.agreedVersion ?? null,
+      };
+      const extra = {
+        skinCode: profile.skinCode ?? null,
+        skinCodeAt: profile.skinCodeAt ?? null,
+        feedTopics: profile.feedTopics ?? null,
+      };
       const { error } = await sb()
         .from('profiles')
-        .upsert(
-          {
-            user_id: id,
-            skin_type: profile.skinType,
-            concerns: profile.concerns,
-            nickname: profile.nickname,
-            created_at: profile.createdAt,
-            agreed_at: profile.agreedAt ?? null,
-            agreed_version: profile.agreedVersion ?? null,
-          },
-          { onConflict: 'user_id' },
-        );
+        .upsert({ ...base, ...profileExtraRow(extra) }, { onConflict: 'user_id' });
+      if (error && isMissingSchema(error)) {
+        // 검사 결과·피드 설정 열이 아직 없는 프로젝트 — 나머지는 그대로 저장한다
+        const retry = await sb().from('profiles').upsert(base, { onConflict: 'user_id' });
+        check('profiles upsert', retry.error);
+        // 못 올린 값은 버리지 않고 이 기기에 보관해 둔다 (칸이 생기면 load 에서 자동으로 올린다)
+        if (extra.skinCode || extra.feedTopics) {
+          writePending(deviceStore(), id, { ...readPending(deviceStore(), id), profileExtra: extra });
+          throw new SavedOnDeviceOnly('profile');
+        }
+        // 보관할 값이 없어졌으면(검사 결과를 지운 경우) 예전 보관분도 지운다
+        const kept = readPending(deviceStore(), id);
+        if (kept.profileExtra) writePending(deviceStore(), id, { ...kept, profileExtra: null });
+        return;
+      }
       check('profiles upsert', error);
+      // 서버에 들어갔으니 보관해 둔 예전 값은 지운다
+      const pending = readPending(deviceStore(), id);
+      if (pending.profileExtra) writePending(deviceStore(), id, { ...pending, profileExtra: null });
     },
 
     async upsertRoutineItems(items) {
@@ -262,7 +397,14 @@ export function createSupabaseRepository(): Repository {
         sort_order: it.sortOrder,
         started_at: it.startedAt,
       }));
-      const { error } = await sb().from('user_routines').upsert(rows, { onConflict: 'id' });
+      const withFreq = rows.map((r, i) => ({ ...r, frequency: items[i].frequency ?? null }));
+      const { error } = await sb().from('user_routines').upsert(withFreq, { onConflict: 'id' });
+      if (error && isMissingSchema(error)) {
+        // frequency 열이 아직 없는 프로젝트 — 사용 빈도만 저장되지 않고 나머지는 그대로 들어간다
+        const retry = await sb().from('user_routines').upsert(rows, { onConflict: 'id' });
+        check('user_routines upsert', retry.error);
+        return;
+      }
       check('user_routines upsert', error);
     },
 
@@ -356,6 +498,35 @@ export function createSupabaseRepository(): Repository {
       const id = await uid();
       const { error } = await sb().from('user_product_photos').delete().eq('product_id', productId).eq('user_id', id);
       check('user_product_photos delete', error);
+    },
+
+    async upsertProductPrice(price) {
+      const id = await uid();
+      const { error } = await sb().from('user_product_prices').upsert(priceRow(id, price), { onConflict: 'user_id,product_id' });
+      const pending = readPending(deviceStore(), id);
+      if (error && isMissingSchema(error)) {
+        // 가격 표가 아직 없는 프로젝트 — 버리지 않고 이 기기에 보관해 둔다
+        writePending(deviceStore(), id, { ...pending, prices: { ...pending.prices, [price.productId]: price } });
+        throw new SavedOnDeviceOnly('prices');
+      }
+      check('user_product_prices upsert', error);
+      // 서버에 들어갔으니 보관해 둔 예전 값은 지운다
+      if (pending.prices[price.productId]) {
+        const { [price.productId]: _done, ...rest } = pending.prices;
+        writePending(deviceStore(), id, { ...pending, prices: rest });
+      }
+    },
+
+    async deleteProductPrice(productId) {
+      const id = await uid();
+      const pending = readPending(deviceStore(), id);
+      if (pending.prices[productId]) {
+        const { [productId]: _removed, ...rest } = pending.prices;
+        writePending(deviceStore(), id, { ...pending, prices: rest });
+      }
+      const { error } = await sb().from('user_product_prices').delete().eq('product_id', productId).eq('user_id', id);
+      // 표가 없으면 서버에는 지울 것도 없다
+      checkSoft('user_product_prices delete', error);
     },
 
     async shareProductPhoto(productId, imageUrl) {
@@ -455,6 +626,7 @@ export function createSupabaseRepository(): Repository {
       // 내가 올린 공유 사진·게시글까지 지운 뒤 로그아웃한다
       const tables = [
         'shared_product_photos',
+        'user_product_prices',
         'board_posts',
         'board_reports',
         'user_blocks',
@@ -467,8 +639,10 @@ export function createSupabaseRepository(): Repository {
       ];
       for (const table of tables) {
         const { error } = await sb().from(table).delete().eq('user_id', id);
-        check(table + ' delete', error);
+        checkSoft(table + ' delete', error);
       }
+      // 이 기기에만 보관해 둔 값도 같이 지운다
+      writePending(deviceStore(), id, EMPTY_PENDING);
       await sb().auth.signOut();
     },
   };

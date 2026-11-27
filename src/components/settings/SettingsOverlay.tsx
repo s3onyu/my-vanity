@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { SUPPORT_EMAIL, TERMS_VERSION } from '@/data/legal';
+import { feedSummary } from '@/engine/feed';
 import { Overlay } from '@/components/layout/Overlay';
 import { Badge, Chip } from '@/components/ui/Chip';
 import { Icon } from '@/components/ui/Icon';
@@ -19,6 +20,8 @@ export function SettingsOverlay() {
   const logs = useAppStore((s) => s.logs);
   const routines = useAppStore((s) => s.routines);
   const productPhotos = useAppStore((s) => s.productPhotos);
+  const account = useAppStore((s) => s.account);
+  const prices = useAppStore((s) => s.prices);
   const unblockAuthor = useAppStore((s) => s.unblockAuthor);
   const deleteAllMyData = useAppStore((s) => s.deleteAllMyData);
   const showToast = useAppStore((s) => s.showToast);
@@ -68,10 +71,45 @@ export function SettingsOverlay() {
               {profile?.agreedAt ? `${profile.agreedAt.slice(0, 10)} (v${profile.agreedVersion ?? '?'})` : '아직 안 함'}
             </span>
           </div>
+          <div className="row row--between mt-1">
+            <span className="small muted">피부 유형 검사</span>
+            <span className="small">
+              {profile?.skinCode ? `${profile.skinCode} (${profile.skinCodeAt?.slice(0, 10) ?? ''})` : '아직 안 함'}
+            </span>
+          </div>
           <button type="button" className="btn btn--ghost btn--block mt-2" onClick={() => pushOverlay({ type: 'profile-edit' })}>
             피부 타입·고민 다시 설정
           </button>
+          <button type="button" className="btn btn--soft btn--block mt-1" onClick={() => pushOverlay({ type: 'skin-quiz' })}>
+            🧪 피부 유형 검사 {profile?.skinCode ? '다시 하기' : '하기'}
+          </button>
         </div>
+      </section>
+
+      {/* ---------------- 계정 ---------------- */}
+      <section className="section">
+        <div className="h3 mb-2">계정</div>
+        <button type="button" className="setting-row" onClick={() => pushOverlay({ type: 'account' })}>
+          <span className="flex-1">
+            {account.kind === 'email' ? `이메일 계정 · ${account.email}` : storage.kind === 'supabase' ? '익명으로 쓰고 있어요 — 계정 만들기' : '이 기기에만 저장 중'}
+          </span>
+          <Icon name="chevron" size={14} />
+        </button>
+        <p className="tiny muted mt-1">
+          {account.kind === 'email'
+            ? '다른 기기에서도 이 계정으로 로그인하면 같은 화장대를 볼 수 있어요.'
+            : '계정을 만들면 브라우저 데이터를 지워도 기록이 남고, 다른 기기에서도 이어서 쓸 수 있어요.'}
+        </p>
+      </section>
+
+      {/* ---------------- 피드 ---------------- */}
+      <section className="section">
+        <div className="h3 mb-2">커뮤니티 피드</div>
+        <button type="button" className="setting-row" onClick={() => pushOverlay({ type: 'feed-settings' })}>
+          <span className="flex-1">관심 분야 노출 비중</span>
+          <span className="small muted">{feedSummary(profile?.feedTopics ?? null)}</span>
+          <Icon name="chevron" size={14} />
+        </button>
       </section>
 
       {/* ---------------- 약관 ---------------- */}
@@ -131,6 +169,10 @@ export function SettingsOverlay() {
             <div>
               <span className="data-summary__num serif">{myPosts.length}</span>
               <span className="tiny muted">내 글</span>
+            </div>
+            <div>
+              <span className="data-summary__num serif">{prices.length}</span>
+              <span className="tiny muted">적어 둔 가격</span>
             </div>
           </div>
           <p className="small muted mt-2">

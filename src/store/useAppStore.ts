@@ -3,6 +3,8 @@ import { create } from 'zustand';
 import type {
   BoardPost,
   ConcernId,
+  FeedTopicId,
+  FeedWeight,
   PostReport,
   ReportReason,
   IngredientCategory,
@@ -10,15 +12,28 @@ import type {
   Product,
   Profile,
   ProductMatch,
+  ProductPrice,
+  RoutineFrequency,
   RoutineItem,
   RoutineType,
   SkinLog,
 } from '@/types';
 import { todayISO } from '@/lib/date';
 import { uid } from '@/lib/id';
+import {
+  EMPTY_ACCOUNT,
+  isAccountAvailable,
+  readAccount,
+  signInWithEmail,
+  signOutAccount as signOutSupabase,
+  upgradeToEmail,
+  type AccountInfo,
+} from '@/lib/account';
+import type { QuizResult } from '@/engine/skinQuiz';
 import { CATEGORY_STEP } from '@/engine/constants';
 import { TERMS_VERSION } from '@/data/legal';
 import { fallbackToLocal, repo } from './index';
+import { SavedOnDeviceOnly, type MissingSchema } from './pendingSync';
 import { findProduct } from './catalog';
 
 export type Page = 'home' | 'products' | 'ingredients' | 'care' | 'diary';
@@ -30,8 +45,11 @@ export type Overlay =
   | { type: 'tutorial'; id?: string; mode?: 'illustration' | 'video'; categoryId?: string }
   | { type: 'profile-edit' }
   | { type: 'care'; concernId: ConcernId }
-  | { type: 'photo-search'; registerOnly?: boolean }
+  | { type: 'photo-search'; registerOnly?: boolean; prefillBrand?: string; prefillName?: string }
   | { type: 'settings' }
+  | { type: 'skin-quiz' }
+  | { type: 'account' }
+  | { type: 'feed-settings' }
   | { type: 'legal'; doc?: 'terms' | 'privacy' | 'rules' }
   | { type: 'report'; postId: string };
 
@@ -47,6 +65,10 @@ export interface StorageStatus {
   error: string | null;
   /** 마지막으로 복원(hydrate)한 시각 */
   restoredAt: string | null;
+  /** 서버에 아직 없는 저장 칸 (schema.sql 최신 구간을 실행하기 전) */
+  missing: MissingSchema[];
+  /** 서버에 못 올리고 이 기기에만 보관 중인 건수 */
+  pending: number;
 }
 
 interface AppState {
@@ -62,6 +84,10 @@ interface AppState {
   sharedPhotos: Record<string, string>;
   /** 내가 공유한 제품 id */
   mySharedPhotoIds: string[];
+  /** 제품 id → 내가 적어 둔 가격 */
+  prices: ProductPrice[];
+  /** 로그인 상태 (서버 모드에서만 의미가 있다) */
+  account: AccountInfo;
   posts: BoardPost[];
   /** 내가 신고한 게시글 (내 화면에서 숨김) */
   reports: PostReport[];
@@ -83,6 +109,8 @@ interface AppState {
   addToRoutine: (productId: string, routineType?: RoutineType) => Promise<'added' | 'exists'>;
   removeFromRoutine: (itemId: string) => Promise<void>;
   moveRoutineItem: (itemId: string, dir: -1 | 1) => Promise<void>;
+  /** 제품의 사용 빈도(매일/격일/요일)를 바꾼다 */
+  setRoutineFrequency: (itemId: string, frequency: RoutineFrequency) => Promise<void>;
   /** 권장 바르는 순서(카테고리 단계)대로 루틴을 정렬한다. 바뀐 게 없으면 false */
   sortRoutineByStep: (routineType: RoutineType) => Promise<boolean>;
   saveLog: (log: Omit<SkinLog, 'id'> & { id?: string }) => Promise<void>;
@@ -95,6 +123,18 @@ interface AppState {
   removeProductPhoto: (productId: string) => Promise<void>;
   shareProductPhoto: (productId: string) => Promise<boolean>;
   unshareProductPhoto: (productId: string) => Promise<void>;
+  /** 내가 산 가격 적어 두기 (0 이하를 넣으면 지운다) */
+  setProductPrice: (productId: string, price: number, volume?: number | null, shop?: string | null) => Promise<void>;
+  removeProductPrice: (productId: string) => Promise<void>;
+  /** 피부 유형 검사 결과를 프로필에 저장 */
+  saveQuizResult: (result: QuizResult) => Promise<void>;
+  /** 커뮤니티 피드의 관심 분야 비중 저장 */
+  setFeedTopics: (topics: Partial<Record<FeedTopicId, FeedWeight>>) => Promise<void>;
+  /** 계정 — 익명 세션에 이메일을 붙이거나, 다른 기기에서 로그인 */
+  refreshAccount: () => Promise<void>;
+  createAccount: (email: string, password: string) => Promise<{ needsConfirmation: boolean }>;
+  signIn: (email: string, password: string) => Promise<void>;
+  signOut: () => Promise<void>;
   createPost: (input: Omit<BoardPost, 'id' | 'likes' | 'createdAt'>) => Promise<void>;
   likePost: (id: string) => Promise<void>;
   /** 내가 쓴 글 삭제 */
@@ -168,13 +208,26 @@ async function persist(task: Promise<void>, onError: (msg: string) => void) {
   try {
     await task;
   } catch (err) {
+    if (err instanceof SavedOnDeviceOnly) {
+      // 실패가 아니라 "이 기기에는 보관했고 서버에는 아직" — 홈 화면 안내도 같이 켠다
+      const { missing } = err;
+      useAppStore.setState((s) => ({
+        storage: {
+          ...s.storage,
+          missing: s.storage.missing.includes(missing) ? s.storage.missing : [...s.storage.missing, missing],
+          pending: s.storage.pending + 1,
+        },
+      }));
+      onError(`${err.message}. 서버 준비가 끝나면 자동으로 올라가요`);
+      return;
+    }
     onError(`저장에 실패했어요: ${(err as Error).message}`);
   }
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
   hydrated: false,
-  storage: { kind: repo.kind, fallback: false, error: null, restoredAt: null },
+  storage: { kind: repo.kind, fallback: false, error: null, restoredAt: null, missing: [], pending: 0 },
   profile: null,
   routines: [],
   logs: [],
@@ -183,6 +236,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   productPhotos: {},
   sharedPhotos: {},
   mySharedPhotoIds: [],
+  prices: [],
+  account: EMPTY_ACCOUNT,
   posts: [],
   reports: [],
   blockedAuthors: [],
@@ -219,7 +274,14 @@ export const useAppStore = create<AppState>((set, get) => ({
     const logs = normalizeLogs(data.logs);
     set({
       hydrated: true,
-      storage: { kind: repo.kind, fallback, error, restoredAt: new Date().toISOString() },
+      storage: {
+        kind: repo.kind,
+        fallback,
+        error,
+        restoredAt: new Date().toISOString(),
+        missing: data.sync?.missing ?? [],
+        pending: data.sync?.pending ?? 0,
+      },
       profile: data.profile,
       routines: [...data.routines].sort((a, b) => a.sortOrder - b.sortOrder),
       logs,
@@ -227,11 +289,21 @@ export const useAppStore = create<AppState>((set, get) => ({
       customProducts: data.customProducts.map((p) => ({ ...p, custom: true })),
       productPhotos: data.productPhotos ?? {},
       sharedPhotos: data.sharedProductPhotos ?? {},
+      prices: data.prices ?? [],
       posts,
       reports: data.reports ?? [],
       blockedAuthors: data.blockedAuthors ?? [],
     });
+    // 로그인 상태는 화면 표시용이라 실패해도 앱을 막지 않는다
+    if (isAccountAvailable()) {
+      try {
+        set({ account: await readAccount() });
+      } catch {
+        set({ account: EMPTY_ACCOUNT });
+      }
+    }
     if (error) get().showToast('서버에 연결하지 못해 이 기기에만 저장해요');
+    else if (data.sync?.uploaded) get().showToast(`이 기기에 보관해 둔 ${data.sync.uploaded}건을 서버에 올렸어요`);
 
     // 아침/저녁 분리 이전 기록이 있으면 한 번만 저장소에도 옮겨 적는다 (다음 방문부터는 그대로 복원)
     const legacy = data.logs.filter((l) => l.period !== 'AM' && l.period !== 'PM');
@@ -250,6 +322,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   async saveProfile(input) {
     const prev = get().profile;
     const profile: Profile = {
+      // 이미 받아 둔 약관 동의·검사 결과·피드 설정은 그대로 둔다 (프로필만 다시 저장하는 경우)
+      ...prev,
       skinType: input.skinType,
       concerns: input.concerns,
       nickname: input.nickname === undefined ? (prev?.nickname ?? null) : input.nickname,
@@ -303,6 +377,15 @@ export const useAppStore = create<AppState>((set, get) => ({
     const others = routines.filter((r) => r.routineType !== target.routineType);
     set({ routines: [...others, ...updated].sort((a, b) => a.sortOrder - b.sortOrder) });
     await persist(repo.upsertRoutineItems(updated), get().showToast);
+  },
+
+  async setRoutineFrequency(itemId, frequency) {
+    const { routines } = get();
+    const target = routines.find((r) => r.id === itemId);
+    if (!target) return;
+    const updated: RoutineItem = { ...target, frequency };
+    set({ routines: routines.map((r) => (r.id === itemId ? updated : r)) });
+    await persist(repo.upsertRoutineItems([updated]), get().showToast);
   },
 
   async sortRoutineByStep(routineType) {
@@ -420,6 +503,84 @@ export const useAppStore = create<AppState>((set, get) => ({
     await persist(repo.unshareProductPhoto(productId), get().showToast);
   },
 
+  async setProductPrice(productId, price, volume = null, shop = null) {
+    if (!Number.isFinite(price) || price <= 0) {
+      await get().removeProductPrice(productId);
+      return;
+    }
+    const entry: ProductPrice = {
+      productId,
+      price: Math.round(price),
+      volume: volume && volume > 0 ? volume : null,
+      shop: shop?.trim() ? shop.trim() : null,
+      updatedAt: new Date().toISOString(),
+    };
+    set({ prices: [...get().prices.filter((p) => p.productId !== productId), entry] });
+    await persist(repo.upsertProductPrice(entry), get().showToast);
+  },
+
+  async removeProductPrice(productId) {
+    set({ prices: get().prices.filter((p) => p.productId !== productId) });
+    await persist(repo.deleteProductPrice(productId), get().showToast);
+  },
+
+  async saveQuizResult(result) {
+    const prev = get().profile;
+    const profile: Profile = {
+      ...prev,
+      skinType: result.skinType,
+      concerns: result.concerns,
+      nickname: prev?.nickname ?? null,
+      createdAt: prev?.createdAt ?? new Date().toISOString(),
+      skinCode: result.code,
+      skinCodeAt: new Date().toISOString(),
+    };
+    set({ profile });
+    await persist(repo.saveProfile(profile), get().showToast);
+  },
+
+  async setFeedTopics(topics) {
+    const prev = get().profile;
+    const profile: Profile = {
+      ...prev,
+      skinType: prev?.skinType ?? null,
+      concerns: prev?.concerns ?? [],
+      nickname: prev?.nickname ?? null,
+      createdAt: prev?.createdAt ?? new Date().toISOString(),
+      feedTopics: topics,
+    };
+    set({ profile });
+    await persist(repo.saveProfile(profile), get().showToast);
+  },
+
+  async refreshAccount() {
+    if (!isAccountAvailable()) return;
+    try {
+      set({ account: await readAccount() });
+    } catch {
+      set({ account: EMPTY_ACCOUNT });
+    }
+  },
+
+  async createAccount(email, password) {
+    const res = await upgradeToEmail(email, password);
+    await get().refreshAccount();
+    return res;
+  },
+
+  async signIn(email, password) {
+    const account = await signInWithEmail(email, password);
+    set({ account });
+    // 다른 기기에서 쓰던 계정일 수 있으므로 그 계정의 데이터로 화면을 다시 채운다
+    await get().hydrate();
+  },
+
+  async signOut() {
+    await signOutSupabase();
+    set({ account: EMPTY_ACCOUNT });
+    await get().hydrate();
+  },
+
   async createPost(input) {
     const post: BoardPost = { ...input, id: uid('post'), likes: 0, createdAt: new Date().toISOString() };
     set({ posts: [post, ...get().posts] });
@@ -494,6 +655,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       productPhotos: {},
       sharedPhotos: {},
       mySharedPhotoIds: [],
+      prices: [],
       reports: [],
       blockedAuthors: [],
       overlays: [],
@@ -574,3 +736,13 @@ export function useHasAgreed(): boolean {
 
 export const selectMatchOf = (productId: string) => (s: AppState) =>
   s.matches.find((m) => m.productId === productId)?.matchType ?? null;
+
+/** 내가 적어 둔 그 제품의 가격 */
+export const selectPriceOf = (productId: string) => (s: AppState) =>
+  s.prices.find((p) => p.productId === productId) ?? null;
+
+/** 커뮤니티 피드의 관심 분야 비중 (설정 전이면 빈 객체) */
+export function useFeedWeights(): Partial<Record<FeedTopicId, FeedWeight>> {
+  const topics = useAppStore((s) => s.profile?.feedTopics ?? null);
+  return useMemo(() => topics ?? {}, [topics]);
+}

@@ -12,6 +12,9 @@ import { SettingsOverlay } from '@/components/settings/SettingsOverlay';
 import { LegalOverlay } from '@/components/settings/LegalOverlay';
 import { TutorialOverlay } from '@/components/tutorial/TutorialOverlay';
 import { PhotoSearchOverlay } from '@/components/products/PhotoSearchOverlay';
+import { SkinQuizOverlay } from '@/components/quiz/SkinQuizOverlay';
+import { AccountOverlay } from '@/components/account/AccountOverlay';
+import { FeedSettingsOverlay } from '@/components/board/FeedSettingsOverlay';
 import { HomePage } from '@/pages/Home';
 import { ProductsPage } from '@/pages/Products';
 import { IngredientsPage } from '@/pages/Ingredients';
@@ -69,12 +72,18 @@ function Overlays() {
       return <CareOverlay concernId={top.concernId} />;
     case 'settings':
       return <SettingsOverlay />;
+    case 'skin-quiz':
+      return <SkinQuizOverlay />;
+    case 'account':
+      return <AccountOverlay />;
+    case 'feed-settings':
+      return <FeedSettingsOverlay />;
     case 'legal':
       return <LegalOverlay initialDoc={top.doc} />;
     case 'report':
       return <ReportSheet postId={top.postId} />;
     case 'photo-search':
-      return <PhotoSearchOverlay key={top.registerOnly ? 'register' : 'photo'} registerOnly={top.registerOnly} />;
+      return <PhotoSearchOverlay key={top.registerOnly ? 'register' : 'photo'} registerOnly={top.registerOnly} prefillBrand={top.prefillBrand} prefillName={top.prefillName} />;
     default:
       return null;
   }

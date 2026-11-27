@@ -1,4 +1,4 @@
-import type { BoardPost, PostReport, Product, Profile, ProductMatch, ReportReason, RoutineItem, SkinLog } from '@/types';
+import type { BoardPost, PostReport, Product, Profile, ProductMatch, ProductPrice, ReportReason, RoutineItem, SkinLog } from '@/types';
 import { clearPhotos, deletePhoto, getPhoto, isPhotoStoreAvailable, listPhotos, putPhoto } from '@/lib/photoStore';
 import { EMPTY_USER_DATA, type Repository, type UserData } from './repository';
 
@@ -81,6 +81,7 @@ export function createLocalRepository(seedPosts: BoardPost[] = []): Repository {
         productPhotos,
         logs,
         sharedProductPhotos: {},
+        prices: user.prices ?? [],
         reports: user.reports ?? [],
         blockedAuthors: user.blockedAuthors ?? [],
       };
@@ -145,6 +146,15 @@ export function createLocalRepository(seedPosts: BoardPost[] = []): Repository {
       delete photos[productId];
       writeUser({ productPhotos: photos });
       if (idb) await deletePhoto(PRODUCT_PHOTO_PREFIX + productId).catch(() => undefined);
+    },
+
+    async upsertProductPrice(price: ProductPrice) {
+      const kept = readUser().prices.filter((p) => p.productId !== price.productId);
+      writeUser({ prices: [...kept, price] });
+    },
+
+    async deleteProductPrice(productId: string) {
+      writeUser({ prices: readUser().prices.filter((p) => p.productId !== productId) });
     },
 
     async shareProductPhoto() {
