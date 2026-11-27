@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { getIngredient, productsWithIngredient } from '@/data';
 import { COLOR_HEX, CONCERN_MAP } from '@/data/concerns';
 import { Sheet } from '@/components/layout/Overlay';
+import { CitationText } from '@/components/evidence/CitationText';
 import { Badge, Chip } from '@/components/ui/Chip';
 import { Icon } from '@/components/ui/Icon';
 import { useAppStore } from '@/store/useAppStore';
@@ -132,7 +133,9 @@ export function IngredientSheet() {
       <div className="ing-detail__label">출처 · 검토</div>
       <dl className="ing-detail__meta">
         <dt>출처</dt>
-        <dd>{ing.source}</dd>
+        <dd>
+          <CitationText text={ing.source} />
+        </dd>
         <dt>근거</dt>
         <dd>{EVIDENCE_LABEL[ing.evidenceLevel]}</dd>
         <dt>최종 검토일</dt>

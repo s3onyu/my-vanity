@@ -449,3 +449,11 @@
   border-radius: 8px;
   background: var(--bone);
 }
+
+/* 출처 안의 PubMed 링크 */
+.citation-link {
+  color: var(--sky-ink);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  white-space: nowrap;
+}
